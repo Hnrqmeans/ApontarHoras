@@ -21,6 +21,7 @@ MESSAGES = {
     "senha_trocada": "Senha alterada.",
     "senha_redefinida": "Senha temporária definida. Passe-a para a pessoa: ela vai trocá-la no próximo acesso.",
     "apontado": "Apontamento salvo.",
+    "conferido": "Mês marcado como conferido. O que mudar depois aparece como alterado após a conferência.",
 }
 
 
@@ -58,6 +59,7 @@ def _nav(ctx: Ctx) -> str:
             ("/usuarios", "Colaboradores"),
             ("/projetos", "Projetos"),
             ("/tarefas", "Tarefas"),
+            ("/relatorio", "Relatório"),
             ("/auditoria", "Auditoria"),
         ]
     path = ctx.request.path
