@@ -62,9 +62,50 @@ em quando: copie o backup para uma pasta de teste, aponte um `ApontarHoras.ini` 
   SHA-256 dele. Quem ler o arquivo do banco não consegue entrar como outra pessoa.
 - Nenhuma senha aparece em log, tela ou auditoria.
 
+## Alguém consegue alterar os dados de outra pessoa?
+| Quem tenta | Consegue? | Como fica registrado |
+|---|---|---|
+| Colaborador, pelo app | **Não.** O servidor confere o dono em toda operação, inclusive em pedidos montados à mão (sem passar pela tela). Testado em `test_only_owner_or_admin_touches_entry` e `test_collaborator_flow_and_permissions`. | Tentativa recusada (403). |
+| Responsável, pelo app | Sim, corrige ou exclui — **só com motivo**. O apontamento continua sendo da pessoa. | Auditoria: quem, quando, antes → depois, motivo. |
+| Responsável "entrando como" outra pessoa | Só redefinindo a senha dela. A pessoa percebe (a senha dela para de funcionar) e a redefinição fica na auditoria. | "Redefiniu a senha". |
+| Quem tem acesso à pasta do servidor | Sim, alterando o arquivo direto. | Não passa pelo app, mas **Verificar integridade** acusa (ver limitação acima). |
+
+## Ataques pelo navegador e pela rede
+| Ataque | Proteção |
+|---|---|
+| Formulário forjado por outro site (CSRF) | Token anti-CSRF em todo formulário + recusa de `Origin` de outro endereço + cookie `SameSite=Strict`. |
+| Injetar código na página (XSS) | Todo texto vindo do usuário/banco é escapado; a CSP proíbe qualquer script (`script-src 'none'`). |
+| Página dentro de outro site (clickjacking) | `X-Frame-Options: DENY` e `frame-ancestors 'none'`. |
+| SQL injection | Todo SQL é parametrizado; filtros do relatório nunca viram texto de SQL. |
+| Fórmula maliciosa no Excel exportado | Texto vai como texto (`inlineStr`) e começo com `= + - @` recebe `'`. Teste: `test_formula_injection_and_escape`. |
+| Adivinhar senha | 5 erros → 15 min bloqueado; mesma mensagem e mesmo tempo para "usuário não existe" e "senha errada". |
+| Enviar dados gigantes | Envio limitado a 1 MB. |
+| Arquivo fora da pasta estática | Só nomes simples `.css/.svg/.png/.ico` são servidos (`/static/../` → 404). |
+
 ## Engenharia reversa
 O código do ApontarHoras é público e não contém segredo, senha ou chave. Ler o código ou o pacote não dá acesso a
 nada: a segurança depende das senhas de cada pessoa, da permissão da pasta `dados` e da rede.
+
+## Arquivos exportados (Excel e PDF)
+- Saem do servidor com nomes, horas e descrições das atividades. Depois de baixados, **o app não os protege**:
+  guarde-os numa pasta restrita (a mesma da documentação da Lei do Bem), não em pasta pública nem e-mail aberto.
+- Cada exportação leva um **selo de conferência** e fica na auditoria (quem exportou, filtros, selo). Se alguém
+  editar o arquivo depois, o conteúdo deixa de bater com o selo registrado.
+
+## Dados pessoais
+- O app guarda: nome, login, papel, horas apontadas e a descrição das atividades. Não guarda CPF, e-mail,
+  endereço nem dado sensível. Senhas só como hash.
+- Cada colaborador vê apenas os próprios apontamentos; o responsável vê todos (finalidade: evidência da Lei do Bem).
+- Quem sai da empresa é **desativado**, não excluído: o histórico é evidência. Prazo de guarda e base legal:
+  combinar com o jurídico/encarregado de dados da empresa.
+
+## Se "Verificar integridade" acusar alteração
+1. Não corrija nada pelo app ainda; anote o número do registro indicado e avise a TI.
+2. Compare com o selo anotado fora do servidor e com o backup mais recente anterior à data do registro.
+3. A TI verifica quem acessou a pasta `dados` (logs do Windows) e, se preciso, restaura o backup.
+4. **Restaurar um backup** volta o banco àquele dia: o que foi lançado depois some e precisa ser relançado; a
+   corrente do backup continua íntegra, mas o selo anotado mais recente não vai existir nele — registre a
+   restauração (data e motivo) junto da documentação.
 
 ## Tráfego na rede
 - Sem HTTPS, o que o navegador envia (inclusive a **senha no login** e o cookie de sessão) trafega **sem
@@ -72,8 +113,8 @@ nada: a segurança depende das senhas de cada pessoa, da permissão da pasta `da
 - A VPN cifra o trecho entre o computador remoto e a empresa, mas **não** o trecho dentro da rede local.
 - **Recomendação:** HTTPS com o certificado da empresa por um proxy reverso no servidor (ex.: IIS com URL Rewrite/ARR,
   ou outro proxy que a TI já use), encaminhando para o ApontarHoras em `127.0.0.1:<porta>`. Nesse caso use
-  `rede = nao` no `.ini`, para só o proxy alcançar o app. O cookie com `Secure` está previsto
-  (`Settings.secure_cookies`).
+  `rede = nao` no `.ini`, para só o proxy alcançar o app, e **`https = sim`**, para o cookie de sessão ganhar
+  `Secure` (o navegador nunca o envia por HTTP).
 - O proxy precisa **preservar o cabeçalho `Host`** original (no IIS/ARR: `preserveHostHeader`): o app recusa
   formulário cujo `Origin` não bate com o `Host`, e sem isso todo envio de formulário seria recusado.
 - Nunca exponha a porta do ApontarHoras para a internet; acesso de fora só pela VPN.
@@ -106,7 +147,9 @@ uma cópia rodando (ou outro programa usa a porta).
       restauração.
 - [ ] Uma porta interna liberada no firewall, acessível pela rede e pela VPN; **não** exposta à internet.
 - [ ] Nome fixo na rede (ou IP fixo).
-- [ ] HTTPS com certificado da empresa via proxy reverso (recomendado); com proxy, `rede = nao`.
+- [ ] HTTPS com certificado da empresa via proxy reverso (recomendado); com proxy, `rede = nao` e `https = sim`,
+      preservando o cabeçalho `Host`.
+- [ ] Pasta restrita para os Excel/PDF exportados (evidência da Lei do Bem).
 - [ ] Pelo menos dois responsáveis ativos no app.
 - [ ] Quem pode usar o `RecuperarAcesso.bat` (acesso ao console do servidor) está definido.
 - [ ] O responsável anota periodicamente o número e o selo do último registro da auditoria (Verificar integridade).

@@ -42,7 +42,8 @@ POST de apontamento médio ~100 ms, p95 ~460 ms.
 ## Instalar no servidor da empresa
 1. Copiar a pasta `ApontarHoras` (do zip) para o servidor, ex.: `C:\ApontarHoras\app`.
 2. Em `ApontarHoras.ini`: `rede = sim`, `abrir_navegador = nao`, `dados = D:\ApontarHoras\dados` (pasta com backup).
-3. Liberar a porta no firewall **só para a rede interna/VPN**.
+3. Liberar a porta no firewall **só para a rede interna/VPN**. Com HTTPS por proxy: `rede = nao` e `https = sim`
+   (ver [SEGURANCA.md](SEGURANCA.md)).
 4. Iniciar com o Windows: Agendador de Tarefas → "Ao iniciar o computador" → `ApontarHoras.exe` (a combinar com a TI).
 5. Abrir `http://<servidor>:8080/` → primeiro acesso cria o responsável.
 - **Atualizar**: parar o app, trocar a pasta do app (guardando o `ApontarHoras.ini`), iniciar. Os dados ficam.
