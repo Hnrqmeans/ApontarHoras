@@ -16,7 +16,8 @@
   conferência do mês sem trava (D9), Excel/PDF com selo, auditoria encadeada, motivo nas correções do responsável,
   lançamento tardio, recuperação de acesso, feriados, importar projetos, porta exclusiva. 170 testes ok; carga
   20×20 = 400/400 gravados, 0 falhas.
-- **Versão:** fica em **v0.1.0** até alguém testar de verdade (pedido do usuário, 2026-11-24): sem tag, sem `main`.
+- **Versão:** fica em **v0.1.0** até alguém testar de verdade (pedido do usuário, 2026-11-24): **sem tag**. A `main`
+  recebeu a `dev` em 2026-11-24 a pedido do usuário (exceção à regra do teste manual), ainda como v0.1.0.
 - **Arquitetura (D1, 2026-11-23):** servidor da empresa; remotos pela VPN. Usuário vai levar o checklist à TI.
 - **Próximo:** teste manual do usuário e demonstração ao responsável; respostas da TI (D10); instalação no servidor.
 - **Bloqueios:** teste manual; TI (D10).
