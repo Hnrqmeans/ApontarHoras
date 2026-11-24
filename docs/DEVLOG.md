@@ -18,6 +18,16 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-24 — Mês sem trava (D9) + porta exclusiva  `#decisao #fix`
+**Fase:** 1 — MVP
+**Decisão D9:** o mês **não trava**: quem está em campo ou sem treinamento não pode perder os dias. Confiança
+pelo rastro (auditoria, lançamento tardio sinalizado, conferência do responsável). DOMAIN e ROADMAP atualizados.
+**Bug (pergunta do usuário: "e se o servidor já roda outro .exe/localhost?"):** no Windows, o `SO_REUSEADDR`
+padrão do `http.server` deixava uma 2ª cópia do app subir na **mesma porta** sem erro (requisições divididas entre
+as duas; com pastas de dados diferentes, horas em dois bancos) → `AppServer` usa `SO_EXCLUSIVEADDRUSE` no Windows
+→ a 2ª cópia falha com "porta em uso". Teste `test_second_instance_cannot_share_port`. 104 testes + ruff ok.
+**Arquivos:** `web/server.py`, `tests/test_web.py`, `docs/DOMAIN.md`, `docs/ROADMAP.md`.
+
 ## 2026-11-24 — Apontamento a partir da planilha antiga  `#feat #decisao`
 **Fase:** 1 — MVP
 **Pedido:** usuário trouxe a planilha usada hoje ("copiar os modelos e melhorar o que for necessário").

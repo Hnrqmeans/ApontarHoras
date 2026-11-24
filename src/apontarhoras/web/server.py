@@ -1,6 +1,7 @@
 """Servidor HTTP (http.server da biblioteca padrão, uma thread por conexão)."""
 
 import logging
+import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
@@ -62,8 +63,18 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 class AppServer(ThreadingHTTPServer):
+    """Porta exclusiva: no Windows, o padrão do http.server (SO_REUSEADDR) deixa uma 2ª cópia do app (ou outro
+    programa que use a mesma opção) subir na MESMA porta sem erro, e as requisições se dividem entre os dois.
+    """
+
     daemon_threads = True
+    allow_reuse_address = not hasattr(socket, "SO_EXCLUSIVEADDRUSE")  # fora do Windows mantém o padrão
 
     def __init__(self, address: tuple[str, int], app: App) -> None:
         self.app = app
         super().__init__(address, _Handler)
+
+    def server_bind(self) -> None:
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()

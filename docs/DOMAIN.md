@@ -6,9 +6,9 @@
 O app serve para registrar as horas que cada colaborador dedica a **projetos de P&D/inovação**, como evidência para
 a Lei do Bem (Lei 11.196/2005). Uso: o colaborador aponta durante o mês; no fim do mês o **responsável** confere,
 fecha e exporta. Por isso, cada apontamento precisa de **descrição da atividade** (o que foi feito no projeto) e os
-dados de meses fechados não podem mudar sem registro.
+dados de meses já conferidos não podem mudar sem registro.
 
-**MVP (Fase 1):** papéis só `colaborador` e `responsável` (= admin); estados do mês só `aberto` → `fechado`.
+**MVP (Fase 1):** papéis só `colaborador` e `responsável` (= admin); o mês **não trava** (D9, 2026-11-24): lançar ou corrigir depois da virada do mês é permitido e fica rastreado.
 As tabelas abaixo com `gestor`, `enviado`, `devolvido` e `aprovado` são a versão completa, **para depois**.
 
 ## Planilha antiga (referência, analisada em 2026-11-24)
@@ -52,7 +52,9 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
   cadastro depois não muda os apontamentos já feitos; corrigir só horário/descrição mantém o valor gravado.
 - **Descrição obrigatória quando conta para a Lei do Bem** (é a evidência); até 1000 caracteres.
 - Corrigir/excluir: o dono ou o responsável (o apontamento continua sendo do dono). Tudo auditado.
-- ⏳ Fechamento do mês (trava a edição).
+- **O mês não trava** (D9): quem estava em campo ou sem treinamento lança depois. A confiança vem do rastro:
+  auditoria de tudo, ⏳ lançamento tardio sinalizado e ⏳ conferência do responsável (o que mudar depois dela
+  aparece como "alterado após a conferência").
 
 ### Jornada e lacunas (implementado 2026-11-24)
 - Jornada esperada: seg–qui **8h27**, sex **7h42**, sábado/domingo 0 (constante em `domain/workday.py`).
@@ -111,4 +113,4 @@ Sempre em 2 cliques: link "Excluir" → página com "Confirmar exclusão". Audit
 ## Auditoria
 Toda criação/edição/exclusão de cadastro, login, senha errada, bloqueio e troca/redefinição de senha registra:
 quem, quando (UTC), ação, item e detalhes (na edição, só o que mudou: antes → depois). **Nunca** grava senha.
-Somente o responsável consulta (tela Auditoria, últimos 200). Apontamentos (criar/corrigir/excluir, com o colaborador). ⏳ Fechamento do mês.
+Somente o responsável consulta (tela Auditoria, últimos 200). Apontamentos (criar/corrigir/excluir, com o colaborador). ⏳ Conferência do mês.

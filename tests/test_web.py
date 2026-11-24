@@ -159,6 +159,16 @@ def test_post_from_other_site_is_rejected(server):
     assert status == 403
 
 
+def test_second_instance_cannot_share_port(db):
+    """Duas cópias na mesma porta dividiriam as requisições em silêncio: a 2ª tem que falhar."""
+    first = AppServer(("127.0.0.1", 0), App(db))
+    try:
+        with pytest.raises(OSError):
+            AppServer(("127.0.0.1", first.server_address[1]), App(db))
+    finally:
+        first.server_close()
+
+
 def test_browser_origin_is_accepted(server):
     """Navegador de verdade manda `Origin` em todo POST; a política de referrer não pode virar `Origin: null`."""
     browser = Browser(server)

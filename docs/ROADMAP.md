@@ -13,8 +13,8 @@
   Planilha antiga): tarefas com Lei do Bem, início/término com almoço, sem sobreposição, "Meus apontamentos" com
   lacunas contra a jornada. 102 testes ok. Exclusão com horas bloqueada (só desativar).
 - **Arquitetura (D1, 2026-11-23):** servidor da empresa; remotos pela VPN. Usuário vai levar o checklist à TI.
-- **Próximo:** visão do responsável (horas de todos por pessoa/projeto/tarefa, filtros da planilha), **fechar o
-  mês**, exportar Excel/PDF; importar a lista de projetos da planilha; teste de carga (20 pessoas).
+- **Próximo:** visão do responsável (horas de todos por pessoa/projeto/tarefa, filtros da planilha), **conferir o
+  mês** (sem travar, D9), exportar Excel/PDF; importar a lista de projetos da planilha; teste de carga (20 pessoas).
 - **Bloqueios:** nenhum.
 - **Última atualização:** 2026-11-24
 
@@ -33,6 +33,8 @@
 | D6 | Forma de apontar                                                 | ✅ Como a planilha (2026-11-24): início/término por atividade, tarefa define a Lei do Bem. |
 | D7 | Executável ou navegador para o colaborador?                      | ✅ Navegador (o .exe roda só no servidor). |
 | D8 | Dependências                                                     | ✅ **Nenhuma** no app (2026-11-23): só biblioteca padrão; abre em máquina limpa. |
+| D9 | Travar o mês?                                                    | ✅ **Não** (2026-11-24): quem está em campo ou sem treinamento não pode perder os dias. Confiança pelo **rastro** (auditoria, lançamento tardio sinalizado, conferência), não por bloqueio. |
+| D10 | O que a TI já tem (ponto, ERP, AD, HTTPS, backup)?              | ⏳ Perguntas com o usuário (2026-11-24). Relatório/exportação esperam a resposta; a parte de confiança segue. |
 
 ---
 
@@ -46,7 +48,7 @@
 - [x] Pacote portátil Windows (`ApontarHoras.exe` + `ApontarHoras.ini`), validado isolado — 2026-11-23
 - [x] Tarefas (Lei do Bem) + projeto elegível ou não — 2026-11-24
 - [x] Colaborador: apontar (início/término/almoço), corrigir, excluir, mês com totais e lacunas — 2026-11-24
-- [ ] Responsável: ver horas do mês por pessoa e por projeto; **fechar o mês** (trava edição); exportar Excel/PDF
+- [ ] Responsável: ver horas do mês por pessoa e por projeto; **conferir o mês** (sem travar, D9); exportar Excel/PDF
 - [x] Bloquear exclusão de usuário/projeto/tarefa com horas apontadas (só desativar) — 2026-11-24
 - [ ] Instalação no servidor da empresa (com a TI)
 
