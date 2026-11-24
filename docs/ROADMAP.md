@@ -1,17 +1,13 @@
 # ROADMAP — Objetivos e fases
 
 ## Status atual
-- **Fase:** 1 — MVP. **Fundação pronta** (2026-11-23, branch `feature/fundacao`): login, primeiro acesso,
-  papéis, colaboradores, projetos, auditoria, pacote portátil validado (abre isolado do Python do PC). 60 testes ok.
+- **Fase:** 1 — MVP **completa em código**; falta o teste com usuários e a instalação no servidor.
   App **sem nenhuma dependência** (só biblioteca padrão), por pedido do usuário.
 - **Repositório:** github.com/Hnrqmeans/ApontarHoras — **público**: nada de dado real, caminho pessoal, e-mail ou
   segredo nos arquivos; commits com o e-mail `noreply` do GitHub (config local do repositório).
 - **Escopo definido (2026-11-23):** apontamento de horas para a **Lei do Bem**. Colaborador aponta horas nos
   projetos; no fim do mês um **responsável** acessa, confere e exporta. **Nada complexo por enquanto** (sem fluxo
   de aprovação, sem gestores, sem cronômetro).
-- **Apontamento pronto (2026-11-24, branch `feature/apontamento`):** modelo tirado da planilha antiga (DOMAIN ›
-  Planilha antiga): tarefas com Lei do Bem, início/término com almoço, sem sobreposição, "Meus apontamentos" com
-  lacunas contra a jornada. 102 testes ok. Exclusão com horas bloqueada (só desativar).
 - **Fase 1 completa em código (2026-11-24, branch `feature/confianca`):** relatório + painel + pendências da equipe,
   conferência do mês sem trava (D9), Excel/PDF com selo, auditoria encadeada, motivo nas correções do responsável,
   lançamento tardio, recuperação de acesso, feriados, importar projetos, porta exclusiva. 170 testes ok; carga
@@ -19,7 +15,10 @@
 - **Versão:** fica em **v0.1.0** até alguém testar de verdade (pedido do usuário, 2026-11-24): **sem tag**. A `main`
   recebeu a `dev` em 2026-11-24 a pedido do usuário (exceção à regra do teste manual), ainda como v0.1.0.
 - **Arquitetura (D1, 2026-11-23):** servidor da empresa; remotos pela VPN. Usuário vai levar o checklist à TI.
-- **Próximo:** teste manual do usuário e demonstração ao responsável; respostas da TI (D10); instalação no servidor.
+- **Próximo:** teste manual (2–3 pessoas, junto com a planilha); demonstração ao responsável; respostas da TI
+  (D10); instalação no servidor; depois disso, release v0.2.0 (checklist em DESENVOLVEDOR › Gerar uma versão).
+- **Apresentações (claude.ai, fora do repositório):** "o fim do mês sem caçar planilha" (convencer o responsável)
+  e "como usar" (guia: colocar no ar, apontar, fim do mês, segurança, problemas comuns).
 - **Bloqueios:** teste manual; TI (D10).
 - **Última atualização:** 2026-11-24
 
@@ -33,7 +32,7 @@
 | D1 | **Como as horas de todos chegam ao responsável?**                | ✅ **Servidor da empresa** (2026-11-23): o app roda nele; todos gravam lá; responsável exporta tudo. Remotos via **VPN**. Pendente: checklist com a TI (ARCHITECTURE › Servidor da empresa). |
 | D2 | Funcionar sem rede?                                              | ✅ Não: precisa de rede da empresa ou VPN. |
 | D3 | Timesheet ou ponto eletrônico?                                   | ✅ **Timesheet de projetos para a Lei do Bem** (não é controle de jornada). |
-| D4 | Login                                                            | Simples (usuário/senha) — confirmar após D1. |
+| D4 | Login                                                            | ✅ Usuário/senha do próprio app (2026-11-24). Login da rede (AD) só se a TI oferecer (D10). |
 | D5 | Papéis                                                           | ✅ **colaborador** + **responsável** (admin). Gestor/aprovação: backlog. |
 | D6 | Forma de apontar                                                 | ✅ Como a planilha (2026-11-24): início/término por atividade, tarefa define a Lei do Bem. |
 | D7 | Executável ou navegador para o colaborador?                      | ✅ Navegador (o .exe roda só no servidor). |

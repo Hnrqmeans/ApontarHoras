@@ -70,8 +70,8 @@ def integrity_page(ctx: Ctx) -> Response:
         result
         + '<p class="muted">Cada registro da auditoria leva um selo calculado a partir do anterior, como uma corrente: '
         "alterar ou apagar um registro direto no arquivo do banco quebra a corrente daquele ponto em diante.</p>"
-        '<p class="muted">Anote o número e o selo do último registro de tempos em tempos (por exemplo, no fechamento '
-        "do mês) e guarde fora do servidor. Depois, confira aqui: se o registro anotado sumiu ou o selo dele mudou, "
+        '<p class="muted">Anote o número e o selo do último registro de tempos em tempos (por exemplo, ao conferir '
+        "o mês) e guarde fora do servidor. Depois, confira aqui: se o registro anotado sumiu ou o selo dele mudou, "
         "os últimos registros foram apagados ou a corrente foi refeita por alguém com acesso ao arquivo.</p>"
         '<form method="get" action="/auditoria/integridade" class="card form">'
         '<label>Conferir o selo do registro nº<input type="text" name="registro" inputmode="numeric" maxlength="10" '

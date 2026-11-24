@@ -36,8 +36,9 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
 | **Projeto**      | Onde as horas são apontadas: código, nome, cliente, ativo, quem pode apontar.                 |
 | **Tarefa**       | Tipo de atividade (Desenvolvimento, Suporte…); define se a hora conta para a Lei do Bem.      |
 | **Apontamento**  | Registro de horas: usuário, data, projeto, atividade, duração (min), início/fim opcionais, descrição. |
-| **Período**      | Intervalo enviado para aprovação de uma vez (proposta: semana seg–dom).                       |
-| **Jornada esperada** | Minutos previstos por dia útil (ex.: 480). Base para "horas faltantes".                   |
+| **Conferência**  | Retrato do mês marcado pelo responsável (selo SHA-256). Não trava nada (D9).                  |
+| **Jornada esperada** | Minutos previstos por dia útil: seg–qui 507 (8h27), sex 462 (7h42); feriado 0. Base das lacunas. |
+| **Período**      | (Depois) intervalo enviado para aprovação de uma vez — só se o fluxo de aprovação vier.        |
 
 ## Regras
 ### Apontamento (implementado 2026-11-24, regras da planilha antiga)
@@ -88,24 +89,26 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
   Lei do Bem = Desenvolvimento, Documentação, Atualização, Testes e Validações, Reuniões Externas;
   não = Manutenção, Suporte, Correções, Reuniões Internas.
 
-### Estados do período
-| Estado      | Quem muda                       | Colaborador edita? |
-|-------------|---------------------------------|--------------------|
-| `aberto`    | —                               | sim                |
-| `enviado`   | colaborador envia               | não (pode recolher se ainda não foi analisado — a confirmar) |
-| `devolvido` | gestor/admin devolve com motivo | sim                |
-| `aprovado`  | gestor/admin aprova             | não                |
-| `fechado`   | admin fecha (ex.: fechamento do mês) | não; só admin reabre, com motivo |
+### Situação do mês (implementado — D9: o mês nunca trava)
+| Situação | Como fica | Colaborador edita? |
+|---|---|---|
+| Sem conferência | Normal | sim |
+| Conferido | Selo do mês guardado; quem/quando | sim — o que mudar aparece como "alterado após a conferência" |
+| Mudou desde a conferência | Aviso no relatório; conferir de novo vale a última | sim |
+
+(Depois, só se vier fluxo de aprovação: `enviado` / `devolvido` / `aprovado` por gestor.)
 
 ### Permissões
 | Ação                                  | colaborador | gestor            | admin |
 |---------------------------------------|-------------|-------------------|-------|
-| Apontar/editar as próprias horas      | ✔ (período aberto/devolvido) | ✔ | ✔ |
-| Ver horas de outros                   | —           | só da equipe      | todos |
-| Aprovar/devolver                      | —           | só da equipe      | todos |
-| Fechar/reabrir período                | —           | —                 | ✔     |
-| Cadastros (usuários, projetos, …)     | —           | — (a confirmar)   | ✔     |
-| Relatórios/exportação                 | só os seus  | da equipe         | todos |
+| Apontar/editar as próprias horas      | ✔ (sempre; mês não trava) | (depois) | ✔ |
+| Corrigir/excluir horas de outra pessoa | —          | (depois)          | ✔ com motivo |
+| Ver horas de outros / relatório        | só as suas (Meus apontamentos) | (depois) | todos |
+| Conferir o mês, exportar Excel/PDF     | —          | —                 | ✔     |
+| Cadastros (usuários, projetos, tarefas, feriados) | — | —           | ✔     |
+| Auditoria e Verificar integridade      | —          | —                 | ✔     |
+
+Hoje só existem `colaborador` e `responsável` (admin); a coluna gestor é para depois.
 
 ### Usuários e acesso (implementado 2026-11-23)
 - O **primeiro acesso** (banco vazio) cria o responsável; depois a tela some.

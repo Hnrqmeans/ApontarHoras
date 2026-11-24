@@ -49,7 +49,21 @@ POST de apontamento médio ~100 ms, p95 ~460 ms.
   Versão com migração nova atualiza o banco ao abrir; versão antiga recusa abrir banco mais novo.
 
 ## Gerar uma versão
-Regra: `main` só recebe `dev` **depois do teste manual**. Exemplo para `X.Y.Z`:
+Regra: `main` só recebe `dev` **depois do teste manual** (exceção registrada: v0.1.0 foi para a `main` sem tag, a
+pedido, antes do teste). A versão fica **0.1.0** até o primeiro teste com usuários.
+
+**Checklist antes do release**
+- [ ] `pytest` e `ruff check src tests scripts` limpos; CI verde na `dev`.
+- [ ] `scripts\carga.py` (20×20): 400/400 gravados, 0 falhas.
+- [ ] Migrações novas numeradas em sequência; testado abrir um **banco da versão anterior** (cópia) com a nova.
+- [ ] Teste manual no navegador real (Edge/Chrome): primeiro acesso, apontar, Meus apontamentos, relatório,
+  conferir, Excel, imprimir/PDF, Verificar integridade.
+- [ ] Pacote: `build.ps1`, abrir o .exe numa pasta de teste, `RecuperarAcesso.bat` funciona.
+- [ ] Docs: ROADMAP (status), DEVLOG (entrada do release), DOMAIN/ARCHITECTURE se mudou regra/estrutura.
+- [ ] Varredura do diff atrás de dado real (repositório público); commits sem Co-Authored-By.
+- [ ] No servidor: **backup do banco antes de atualizar** (a versão nova migra o banco ao abrir).
+
+Passos para `X.Y.Z`:
 1. `git switch -c release/vX.Y.Z` (a partir da `dev`).
 2. Versão em `pyproject.toml` e `src/apontarhoras/__init__.py`.
 3. `docs/DEVLOG.md` (entrada "Release vX.Y.Z") e `docs/ROADMAP.md` › Status atual.

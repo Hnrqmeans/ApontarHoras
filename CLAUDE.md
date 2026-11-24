@@ -29,7 +29,7 @@ portátil com o Python oficial embeddable → abre em **máquina limpa**, sem in
 
 ## Regras de código (resumo)
 - **Zero dependências no app** (pedido do usuário): só biblioteca padrão; `dependencies = []` no pyproject.
-  pytest/ruff só no extra `[dev]`. Excel/PDF serão gerados com `zipfile`/XML/texto, sem bibliotecas.
+  pytest/ruff só no extra `[dev]`. Excel = `integrations/xlsx` (zipfile + XML); PDF = página de impressão do navegador.
 - Camadas: `web → services → storage`; `domain` não importa nada do projeto. Tela **nunca** contém cálculo.
 - **Permissão sempre no `services`** (nunca só esconder botão na tela): toda operação recebe o usuário logado
   (`actor`) e confere o papel (`admin` = responsável, `colaborador`) com `require_admin`/`require_user`.
@@ -41,7 +41,8 @@ portátil com o Python oficial embeddable → abre em **máquina limpa**, sem in
 - Toda regra de cálculo nova vem com teste em `tests/` (pytest).
 - Integrações externas (Excel, e-mail, AD/SSO, ERP) ficam em `integrations/<nome>/` e não são importadas pelo `domain`.
 - **Auditoria:** toda criação/edição/exclusão de apontamento, aprovação e cadastro registra quem, quando e o quê
-  (mesma transação). Apontamento aprovado/fechado não se edita: só reabrindo (com motivo).
+  (mesma transação). **O mês não trava (D9)**: correção a qualquer tempo, sempre auditada; responsável que
+  corrige/exclui horas de OUTRA pessoa informa motivo. Confiança = auditoria encadeada + conferência do mês (selo).
 - Senhas: só hash (scrypt/argon2), nunca texto puro nem em log. Nada de segredo no repositório.
 - **Todo dado cadastrável precisa de exclusão** (ou desativação, se tiver histórico) com confirmação + teste.
   Exclusão = 2 cliques (link → página "Confirmar exclusão"). Atualizar DOMAIN.md › Exclusão de dados.
@@ -53,7 +54,14 @@ portátil com o Python oficial embeddable → abre em **máquina limpa**, sem in
 - Configuração do pacote: `ApontarHoras.ini` ao lado do .exe (o Python embutido recusa opções `--` na linha de
   comando). Opção nova → `main.load_settings` + `scripts/portable/ApontarHoras.ini` + teste em `test_main.py`.
 - Arquivo novo que não é `.py` (SQL, CSS…) → `[tool.setuptools.package-data]` no `pyproject.toml`.
-- Rodar testes: `.venv\Scripts\python.exe -m pytest`. Lint: `.venv\Scripts\python.exe -m ruff check src tests`.
+- Rodar testes: `.venv\Scripts\python.exe -m pytest`. Lint: `.venv\Scripts\python.exe -m ruff check src tests scripts`.
+- **Migração nova** = próximo número livre em `storage/migrations/NNN_*.sql` (nunca reaproveitar; trabalho em paralelo
+  reserva números antes). Mudou o banco → teste com banco novo e com banco da versão anterior.
+- Teste web que faz POST deve mandar `Origin` como o navegador (o urllib não manda): `Referrer-Policy` fica
+  `same-origin` — `no-referrer` faz o navegador mandar `Origin: null` e a trava recusa todos os formulários.
+- Mexeu em servidor/concorrência → rodar `scripts\carga.py` (20×20 deve dar 400/400, 0 falhas).
+- Release: checklist em [docs/DESENVOLVEDOR.md](docs/DESENVOLVEDOR.md) › Gerar uma versão. Versão fica **0.1.0**
+  até o primeiro teste com usuários (pedido do usuário).
 
 ## Fluxo de git
 - `main` = só versões estáveis com tag `vX.Y.Z`. **Nunca** commitar direto.
@@ -61,6 +69,8 @@ portátil com o Python oficial embeddable → abre em **máquina limpa**, sem in
 - `main` só recebe `dev` depois do **teste manual do usuário**.
 - Trabalho em `feature/<assunto>` / `fix/<assunto>` a partir de `dev`; merge com `--no-ff`.
 - Mensagens: `tipo(escopo): descrição` em pt-BR (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`).
+  **Sem linha Co-Authored-By** e sem mencionar IA (pedido do usuário). Antes de commitar, varrer o diff atrás de
+  dado real (nomes, clientes, e-mails, caminhos pessoais, senhas): o repositório é **público**.
 - **Push só quando o usuário pedir.**
 
 ## Preferências do usuário
