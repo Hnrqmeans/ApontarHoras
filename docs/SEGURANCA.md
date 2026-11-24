@@ -139,6 +139,18 @@ O ApontarHoras usa a porta do `.ini` com exclusividade: uma segunda cópia abert
 foi possível usar a porta…"), em vez de dividir as requisições em silêncio. Se aparecer essa mensagem, já existe
 uma cópia rodando (ou outro programa usa a porta).
 
+## Repositório no GitHub (público)
+- Quem clona ou faz fork **não altera** o repositório: só **propõe** mudanças por Pull Request, que fica parado até
+  alguém com permissão de escrita aprovar. O servidor da empresa roda o pacote gerado pelo mantenedor, não o GitHub.
+- Riscos: aprovar um PR sem ler o diff; alguém distribuir um `.exe` modificado de um fork (use só o pacote do
+  mantenedor/TI e confira o SHA-256 do zip); push direto ou forçado por engano.
+- Regras que **impõem** isso (Settings do GitHub, só o dono configura):
+  - [ ] Settings › Branches: proteger `main` e `dev` — exigir Pull Request, exigir CI verde, bloquear push forçado
+        e exclusão.
+  - [ ] Settings › Actions › Fork pull request workflows: exigir aprovação para **todos** os colaboradores externos.
+  - [ ] Avaliar tornar o repositório **privado** (ferramenta interna): elimina a exposição pública.
+- Orientação para quem contribui: [CONTRIBUTING.md](../CONTRIBUTING.md) e o modelo de Pull Request.
+
 ## Checklist para a TI
 - [ ] Pasta fixa para os dados (`dados =` no `ApontarHoras.ini`), fora da pasta do programa.
 - [ ] Permissão da pasta `dados` só para a conta que roda o ApontarHoras e para a TI.
