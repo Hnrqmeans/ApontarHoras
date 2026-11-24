@@ -7,7 +7,7 @@ pelas 12:00–13:00, sem sobreposição no mesmo dia, descrição obrigatória q
 import calendar
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, tzinfo
 
 from apontarhoras.domain.audit import changes
 from apontarhoras.domain.duration import format_minutes
@@ -16,10 +16,12 @@ from apontarhoras.domain.time_entry import (
     TimeEntry,
     compute_minutes,
     format_clock,
+    is_late_entry,
     overlaps,
     parse_clock,
     parse_lunch,
     parse_work_date,
+    validate_correction_reason,
     validate_description,
 )
 from apontarhoras.domain.user import User
@@ -72,6 +74,18 @@ def _get_allowed(conn: sqlite3.Connection, actor: User | None, entry_id: int) ->
     if entry.user_id != user.id and not user.is_admin:
         raise PermissionDenied("Você só pode ver e alterar os seus apontamentos.")
     return user, entry
+
+
+def entered_late(entry: TimeEntry, *, tz: tzinfo | None = None) -> bool:
+    """Lançado depois do fim do mês trabalhado (data local de `created_at`; `tz` = fuso do servidor)."""
+    return is_late_entry(entry.work_date, entry.created_at.astimezone(tz).date())
+
+
+def _reason_for(user: User, entry: TimeEntry, reason: str) -> dict:
+    """Quem mexe no apontamento de outra pessoa (o responsável) precisa dizer o motivo; o dono, não."""
+    if user.id == entry.user_id:
+        return {}
+    return {"motivo": validate_correction_reason(reason)}
 
 
 def get_entry(conn: sqlite3.Connection, actor: User | None, entry_id: int) -> TimeEntry:
@@ -260,11 +274,14 @@ def update_entry(
     end: str,
     lunch: str = "",
     description: str = "",
+    reason: str = "",
     today: date | None = None,
     now: datetime | None = None,
 ) -> TimeEntry:
+    """`reason` é obrigatório (3–500 caracteres) quando quem corrige não é o dono do apontamento."""
     with transaction(conn):
         user, before = _get_allowed(conn, actor, entry_id)
+        motive = _reason_for(user, before, reason)
         values = _validate(
             conn, before.user_id, work_date=work_date, project_id=project_id, task_id=task_id, start=start,
             end=end, lunch=lunch, description=description, today=today or local_today(), current=before,
@@ -273,13 +290,17 @@ def update_entry(
         after = time_entries_repo.get(conn, entry_id)
         diff = changes(_snapshot(before), _snapshot(after))
         if diff:
-            audit.record(conn, user, "update", "time_entry", entry_id, {"colaborador": after.user_name, **diff},
-                         now=now)
+            audit.record(conn, user, "update", "time_entry", entry_id,
+                         {"colaborador": after.user_name, **diff, **motive}, now=now)
     return after
 
 
-def delete_entry(conn: sqlite3.Connection, actor: User | None, entry_id: int, *, now: datetime | None = None) -> None:
+def delete_entry(
+    conn: sqlite3.Connection, actor: User | None, entry_id: int, *, reason: str = "", now: datetime | None = None
+) -> None:
+    """`reason` é obrigatório (3–500 caracteres) quando quem exclui não é o dono do apontamento."""
     with transaction(conn):
         user, entry = _get_allowed(conn, actor, entry_id)
+        motive = _reason_for(user, entry, reason)
         time_entries_repo.delete(conn, entry_id)
-        audit.record(conn, user, "delete", "time_entry", entry_id, _snapshot(entry), now=now)
+        audit.record(conn, user, "delete", "time_entry", entry_id, {**_snapshot(entry), **motive}, now=now)

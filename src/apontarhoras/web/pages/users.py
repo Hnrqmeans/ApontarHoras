@@ -12,6 +12,7 @@ from apontarhoras.web.components import (
     page,
     password_field,
     select_field,
+    single_admin_notice,
     text_field,
 )
 from apontarhoras.web.http import Response, redirect
@@ -45,6 +46,8 @@ def list_page(ctx: Ctx) -> Response:
         '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Login</th><th>Papel</th><th>Situação</th>'
         f"<th></th></tr></thead><tbody>{rows}</tbody></table></div>"
     )
+    if users_service.has_single_admin(ctx.conn, ctx.user):
+        body = single_admin_notice() + body
     return page(ctx, "Colaboradores", body)
 
 

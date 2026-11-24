@@ -3,6 +3,7 @@
 from apontarhoras.domain.duration import format_minutes
 from apontarhoras.domain.errors import AppError
 from apontarhoras.domain.time_entry import (
+    MAX_REASON,
     LunchChoice,
     TimeEntry,
     format_clock,
@@ -17,6 +18,7 @@ from apontarhoras.web.components import (
     badge,
     date_field,
     e,
+    fmt_datetime,
     form,
     page,
     select_field,
@@ -39,6 +41,7 @@ STATUS_BADGE = {
 CLOCK_HINT = "Ex.: 07:30, 7:30 ou 730."
 LUNCH_HINT = "Obrigatório quando o período começa antes das 12:00 e termina depois das 13:00."
 DESCRIPTION_HINT = "O que foi feito. Obrigatória quando a hora conta para a Lei do Bem (é a evidência)."
+REASON_HINT = "Obrigatório ao alterar o apontamento de outra pessoa. Fica registrado na auditoria."
 
 
 def _month_param(year: int, month: int) -> str:
@@ -66,8 +69,12 @@ def _entry_row(entry: TimeEntry) -> str:
     rd = "Sim" if entry.rd_eligible else badge("Não", "off")
     lunch = f' <small class="muted">(−{format_minutes(entry.break_minutes)} almoço)</small>' if entry.break_minutes \
         else ""
+    late = ""
+    if time_entries_service.entered_late(entry):
+        late = (f' <span title="Lançado em {e(fmt_datetime(entry.created_at))}">'
+                f'{badge("Lançado depois do mês", "attention")}</span>')
     return (
-        f"<tr><td></td><td>{format_clock(entry.start_minute)}–{format_clock(entry.end_minute)}{lunch}</td>"
+        f"<tr><td></td><td>{format_clock(entry.start_minute)}–{format_clock(entry.end_minute)}{lunch}{late}</td>"
         f"<td><strong>{format_minutes(entry.minutes)}</strong></td>"
         f'<td title="{e(entry.project_name)}">{e(entry.project_code)}</td><td>{e(entry.task_name)}</td>'
         f'<td>{rd}</td><td class="desc">{e(entry.description)}</td>'
@@ -182,6 +189,14 @@ def _values(ctx: Ctx) -> dict:
     }
 
 
+def _reason_field(ctx: Ctx, entry: TimeEntry) -> str:
+    """Só aparece quando quem altera não é o dono (o responsável corrigindo outra pessoa)."""
+    if entry.user_id == ctx.user.id:
+        return ""
+    return text_field("motivo", "Motivo da correção", ctx.form.get("motivo", ""), maxlength=MAX_REASON,
+                      hint=REASON_HINT)
+
+
 def _back(entry: TimeEntry) -> str:
     return f"/apontamentos?mes={_month_param(entry.work_date.year, entry.work_date.month)}"
 
@@ -209,7 +224,8 @@ def _edit_page(ctx: Ctx, entry: TimeEntry, *, error: str | None = None) -> Respo
     if entry.user_id != ctx.user.id:
         title += f" de {entry.user_name}"
     action = f"/apontamentos/{entry.id}/editar"
-    return page(ctx, title, form(ctx, action, _fields(ctx, entry), "Salvar", cancel_href=_back(entry)), error=error)
+    fields = _fields(ctx, entry) + _reason_field(ctx, entry)
+    return page(ctx, title, form(ctx, action, fields, "Salvar", cancel_href=_back(entry)), error=error)
 
 
 def edit_get(ctx: Ctx, entry_id: str) -> Response:
@@ -218,7 +234,8 @@ def edit_get(ctx: Ctx, entry_id: str) -> Response:
 
 def edit_post(ctx: Ctx, entry_id: str) -> Response:
     try:
-        entry = time_entries_service.update_entry(ctx.conn, ctx.user, int(entry_id), **_values(ctx))
+        entry = time_entries_service.update_entry(ctx.conn, ctx.user, int(entry_id), **_values(ctx),
+                                                  reason=ctx.form.get("motivo", ""))
     except AppError as exc:
         return _edit_page(ctx, time_entries_service.get_entry(ctx.conn, ctx.user, int(entry_id)), error=str(exc))
     return redirect(_back(entry) + "&msg=salvo")
@@ -230,6 +247,7 @@ def _delete_page(ctx: Ctx, entry: TimeEntry, *, error: str | None = None) -> Res
         f"{format_clock(entry.start_minute)}–{format_clock(entry.end_minute)} ({format_minutes(entry.minutes)}), "
         f"projeto <strong>{e(entry.project_code)}</strong>, tarefa {e(entry.task_name)}?</p>"
         '<p class="muted">A exclusão fica registrada na auditoria.</p>'
+        + _reason_field(ctx, entry)
     )
     action = f"/apontamentos/{entry.id}/excluir"
     return page(ctx, "Excluir apontamento",
@@ -243,7 +261,7 @@ def delete_get(ctx: Ctx, entry_id: str) -> Response:
 def delete_post(ctx: Ctx, entry_id: str) -> Response:
     entry = time_entries_service.get_entry(ctx.conn, ctx.user, int(entry_id))
     try:
-        time_entries_service.delete_entry(ctx.conn, ctx.user, entry.id)
+        time_entries_service.delete_entry(ctx.conn, ctx.user, entry.id, reason=ctx.form.get("motivo", ""))
     except AppError as exc:
         return _delete_page(ctx, entry, error=str(exc))
     return redirect(_back(entry) + "&msg=excluido")
