@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apontarhoras"
+version = "0.1.0"
+description = "Apontamento de horas em projetos de P&D (Lei do Bem): servidor local, acesso pelo navegador."
+requires-python = ">=3.12"
+# Regra do projeto: o app usa SÓ a biblioteca padrão do Python (nenhum pacote de terceiros).
+dependencies = []
+
+[project.optional-dependencies]
+# Só para desenvolver (testes e lint); não vai no pacote do app.
+dev = ["pytest>=9,<10", "ruff>=0.17,<1"]
+
+[project.scripts]
+apontarhoras = "apontarhoras.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"apontarhoras.storage" = ["migrations/*.sql"]
+"apontarhoras.web" = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, ordem dos imports, armadilhas comuns (bugbear), sintaxe moderna
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apontarhoras"]

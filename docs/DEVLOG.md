@@ -18,6 +18,31 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-23 — Fundação: login, papéis, cadastros, auditoria, pacote portátil (sem dependências)  `#feat #infra #decisao`
+**Fase:** 1 — MVP
+**Pedido:** "não gere dependências, o app deve abrir em uma máquina limpa"; depois subir na branch remota.
+**Decisão:** NiceGUI descartado → só biblioteca padrão: `http.server` (ThreadingHTTPServer) + `sqlite3` (WAL) +
+HTML gerado no servidor, sem JavaScript (CSP `script-src 'none'`). pytest/ruff só no extra `[dev]`.
+**O que mudou:**
+- `domain`: erros, duração (minutos ⇄ H:MM), usuário/papel/bloqueio, projeto, auditoria (`changes`).
+- `auth`: scrypt; token de sessão (banco guarda o SHA-256); anti-CSRF derivado do token.
+- `storage`: `Database`/`transaction`/`migrate` + `001_init.sql` (users, sessions, projects, audit_log); repositórios.
+- `services`: primeiro acesso, login (5 erros → 15 min), sessão 12 h, trocar senha; usuários (≥ 1 responsável,
+  senha temporária obriga troca); projetos; auditoria. Permissão conferida aqui.
+- `web`: despacho com travas (login, troca obrigatória de senha, papel, CSRF, origem), cabeçalhos de segurança,
+  telas Primeiro acesso / Entrar / Trocar senha / Início / Colaboradores / Projetos / Auditoria; exclusão em 2 cliques.
+- Pacote: `scripts/build.ps1` (Python 3.12.10 embeddable, SHA-256 + assinatura) e `sitecustomize.py`.
+**Bug encontrado no teste do pacote:** `ApontarHoras.exe --sem-navegador` → "unknown option" → o Python embutido
+interpreta opções `--` antes do app → configuração passou para `ApontarHoras.ini` ao lado do .exe
+(`main.load_settings`: padrão ← .ini ← linha de comando); o .exe só abre sem argumentos.
+**Verificado:** 60 testes + ruff ok; nenhum import fora da biblioteca padrão (varredura com `sys.stdlib_module_names`);
+pacote gerado e executado isolado (tela de primeiro acesso, CSS e banco criados).
+**Arquivos:** `src/apontarhoras/**`, `tests/**`, `pyproject.toml`, `scripts/**`, `.github/workflows/ci.yml`, docs.
+**Pendências / próximos passos:**
+- Exemplo do usuário → apontamento, fechamento do mês, exportação Excel/PDF (sem bibliotecas).
+- Bloquear exclusão de usuário/projeto com horas (quando existirem apontamentos).
+- Combinar com a TI: porta, nome do servidor, início automático, backup, HTTPS.
+
 ## 2026-11-23 — D1: servidor da empresa + VPN  `#decisao`
 **Fase:** 0 — Planejamento
 **Motivo:** usuário quer que uma pessoa só baixe os dados de todos, sem envio de arquivos; a empresa tem servidor e
