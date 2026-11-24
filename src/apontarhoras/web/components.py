@@ -24,6 +24,7 @@ MESSAGES = {
     "importado": "Projetos importados. Confira a lista abaixo.",
     "feriados_adicionados": "Feriados nacionais adicionados.",
     "feriados_ja_existiam": "Os feriados nacionais deste ano já estavam cadastrados.",
+    "conferido": "Mês marcado como conferido. O que mudar depois aparece como alterado após a conferência.",
 }
 
 
@@ -62,6 +63,7 @@ def _nav(ctx: Ctx) -> str:
             ("/projetos", "Projetos"),
             ("/tarefas", "Tarefas"),
             ("/feriados", "Feriados"),
+            ("/relatorio", "Relatório"),
             ("/auditoria", "Auditoria"),
         ]
     path = ctx.request.path

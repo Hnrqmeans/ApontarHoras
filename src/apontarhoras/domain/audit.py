@@ -14,6 +14,8 @@ ACTION_LABELS = {
     "delete": "Excluiu",
     "password_change": "Trocou a senha",
     "password_reset": "Redefiniu a senha",
+    "review": "Conferiu",
+    "export": "Exportou",
 }
 
 ENTITY_LABELS = {
@@ -21,6 +23,8 @@ ENTITY_LABELS = {
     "project": "Projeto",
     "task": "Tarefa",
     "time_entry": "Apontamento",
+    "month_review": "Conferência do mês",
+    "report": "Relatório",
 }
 
 

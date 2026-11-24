@@ -14,7 +14,18 @@ from apontarhoras.services import auth_service
 from apontarhoras.storage.db import Database
 from apontarhoras.web.components import SESSION_COOKIE, clear_session_cookie, error_page
 from apontarhoras.web.http import Request, Response, redirect
-from apontarhoras.web.pages import audit, auth, entries, holidays, home, project_import, projects, tasks, users
+from apontarhoras.web.pages import (
+    audit,
+    auth,
+    entries,
+    holidays,
+    home,
+    project_import,
+    projects,
+    reports,
+    tasks,
+    users,
+)
 from apontarhoras.web.routing import Access, Ctx, Route
 
 logger = logging.getLogger(__name__)
@@ -28,6 +39,7 @@ ALL_ROUTES: list[Route] = [
     *projects.ROUTES,
     *tasks.ROUTES,
     *audit.ROUTES,
+    *reports.ROUTES,
     *holidays.ROUTES,
 ]
 

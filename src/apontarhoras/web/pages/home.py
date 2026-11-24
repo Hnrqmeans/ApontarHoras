@@ -20,6 +20,8 @@ def home(ctx: Ctx) -> Response:
             "apontadas.</a>"
             '<a class="card" href="/tarefas"><strong>Tarefas</strong>Tipos de atividade e quais contam para a Lei do '
             "Bem.</a>"
+            '<a class="card" href="/relatorio"><strong>Relatório</strong>Conferir o mês, pendências da equipe e '
+            "exportar (Excel e PDF).</a>"
             '<a class="card" href="/feriados"><strong>Feriados</strong>Dias sem jornada (não viram pendência).</a>'
             '<a class="card" href="/auditoria"><strong>Auditoria</strong>Quem fez o quê e quando.</a>'
         )

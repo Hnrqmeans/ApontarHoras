@@ -78,6 +78,36 @@ def get_entry(conn: sqlite3.Connection, actor: User | None, entry_id: int) -> Ti
     return _get_allowed(conn, actor, entry_id)[1]
 
 
+def summarize_days(
+    entries: list[TimeEntry], year: int, month: int, today: date, holidays: dict[date, str] | None = None
+) -> list[DaySummary]:
+    """Os dias do mês de UMA pessoa contra a jornada (regra única de lacunas; o relatório da equipe também usa).
+
+    Todo dia útil até hoje (dia sem apontamento = pendência), os feriados (sem jornada, nunca pendência) e os fins
+    de semana que tiverem horas. `holidays`: data → descrição.
+    """
+    holidays = holidays or {}
+    holiday_days = frozenset(holidays)
+    last_day = calendar.monthrange(year, month)[1]
+    by_day: dict[date, list[TimeEntry]] = {}
+    for entry in entries:
+        by_day.setdefault(entry.work_date, []).append(entry)
+
+    days: list[DaySummary] = []
+    for number in range(1, last_day + 1):
+        day = date(year, month, number)
+        if day > today:
+            break
+        day_entries = by_day.get(day, [])
+        expected = expected_minutes(day, holiday_days)
+        holiday = holidays.get(day, "")
+        if expected == 0 and not day_entries and not holiday:
+            continue
+        worked = sum(entry.minutes for entry in day_entries)
+        days.append(DaySummary(day, day_entries, worked, expected, day_status(worked, expected), holiday))
+    return days
+
+
 def month_summary(
     conn: sqlite3.Connection, actor: User | None, year: int, month: int, *, today: date | None = None
 ) -> MonthSummary:
@@ -91,24 +121,7 @@ def month_summary(
     first_day = date(year, month, 1)
     last_day = date(year, month, calendar.monthrange(year, month)[1])
     entries = time_entries_repo.list_for_user(conn, user.id, first_day, last_day)
-    holidays = holidays_service.holidays_in(conn, first_day, last_day)
-    holiday_days = frozenset(holidays)
-    by_day: dict[date, list[TimeEntry]] = {}
-    for entry in entries:
-        by_day.setdefault(entry.work_date, []).append(entry)
-
-    days: list[DaySummary] = []
-    for number in range(1, last_day.day + 1):
-        day = date(year, month, number)
-        if day > today:
-            break
-        day_entries = by_day.get(day, [])
-        expected = expected_minutes(day, holiday_days)
-        holiday = holidays.get(day, "")
-        if expected == 0 and not day_entries and not holiday:
-            continue
-        worked = sum(entry.minutes for entry in day_entries)
-        days.append(DaySummary(day, day_entries, worked, expected, day_status(worked, expected), holiday))
+    days = summarize_days(entries, year, month, today, holidays_service.holidays_in(conn, first_day, last_day))
 
     return MonthSummary(
         year=year,
