@@ -78,7 +78,9 @@ def _entry_row(entry: TimeEntry) -> str:
 
 def _day_rows(day: DaySummary) -> str:
     label = f"{day.day.strftime('%d/%m')} {WEEKDAYS[day.day.weekday()]}"
-    if day.status is DayStatus.NOT_WORKDAY:
+    if day.holiday:
+        situation = badge(f"Feriado: {day.holiday}", "off")
+    elif day.status is DayStatus.NOT_WORKDAY:
         situation = badge("Fim de semana", "off")
     else:
         diff = day.worked - day.expected
@@ -117,7 +119,7 @@ def month_page(ctx: Ctx) -> Response:
         '<a class="button primary" href="/apontamentos/novo">Novo apontamento</a></div>'
         + _stats(summary)
         + '<p class="muted">Jornada esperada: seg–qui 8:27, sex 7:42. <strong>Pendência</strong> = apontou menos; '
-        "<strong>Verificar</strong> = apontou mais (hora extra ou erro).</p>"
+        "<strong>Verificar</strong> = apontou mais (hora extra ou erro). Feriado não tem jornada.</p>"
         '<div class="table-wrap"><table class="entries"><thead><tr><th>Dia</th><th>Horário</th><th>Horas</th>'
         "<th>Projeto</th><th>Tarefa</th><th>Lei do Bem</th><th>Descrição</th><th></th></tr></thead>"
         f"<tbody>{rows}</tbody></table></div>"

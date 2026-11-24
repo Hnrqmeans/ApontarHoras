@@ -26,7 +26,8 @@ def list_page(ctx: Ctx) -> Response:
         rows = '<tr><td colspan="5" class="muted">Nenhum projeto cadastrado.</td></tr>'
     body = (
         '<div class="toolbar"><span class="muted">Só projetos ativos aparecem para os colaboradores.</span>'
-        '<a class="button primary" href="/projetos/novo">Novo projeto</a></div>'
+        '<span class="actions"><a class="button" href="/projetos/importar">Importar lista</a>'
+        '<a class="button primary" href="/projetos/novo">Novo projeto</a></span></div>'
         '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Lei do Bem</th><th>Situação</th>'
         f"<th></th></tr></thead><tbody>{rows}</tbody></table></div>"
     )

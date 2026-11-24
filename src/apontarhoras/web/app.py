@@ -14,7 +14,7 @@ from apontarhoras.services import auth_service
 from apontarhoras.storage.db import Database
 from apontarhoras.web.components import SESSION_COOKIE, clear_session_cookie, error_page
 from apontarhoras.web.http import Request, Response, redirect
-from apontarhoras.web.pages import audit, auth, entries, home, projects, tasks, users
+from apontarhoras.web.pages import audit, auth, entries, holidays, home, project_import, projects, tasks, users
 from apontarhoras.web.routing import Access, Ctx, Route
 
 logger = logging.getLogger(__name__)
@@ -24,9 +24,11 @@ ALL_ROUTES: list[Route] = [
     *home.ROUTES,
     *entries.ROUTES,
     *users.ROUTES,
+    *project_import.ROUTES,
     *projects.ROUTES,
     *tasks.ROUTES,
     *audit.ROUTES,
+    *holidays.ROUTES,
 ]
 
 _STATIC_NAME = re.compile(r"^[a-z0-9_-]+\.(css|svg|png|ico)$")
@@ -52,6 +54,8 @@ class App:
     def handle(self, request: Request) -> Response:
         if request.path.startswith("/static/"):
             response = self._static(request.path.removeprefix("/static/"))
+        elif request.path == "/favicon.ico":  # pedido automático do navegador: sem login (não vira 303 no log)
+            response = self._static("favicon.svg")
         else:
             conn = self.db.connect()
             try:
