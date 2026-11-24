@@ -53,7 +53,11 @@ def load_settings(argv: list[str] | None = None) -> tuple[Settings, bool]:
     data_text = ini.get("dados", "").strip()
     data_dir = args.dados or (Path(data_text) if data_text else default_data_dir())
     open_browser = not args.sem_navegador and ini.get("abrir_navegador", "sim").strip().lower() in _YES
-    settings = Settings(data_dir=data_dir, host="0.0.0.0" if network else "127.0.0.1", port=port)
+    # https = sim: o app está atrás de um proxy HTTPS; o cookie de sessão ganha `Secure` (nunca vai por HTTP).
+    secure_cookies = ini.get("https", "nao").strip().lower() in _YES
+    settings = Settings(
+        data_dir=data_dir, host="0.0.0.0" if network else "127.0.0.1", port=port, secure_cookies=secure_cookies
+    )
     return settings, open_browser
 
 
