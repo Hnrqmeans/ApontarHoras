@@ -158,19 +158,19 @@ def test_entries_are_audited(conn, admin, collaborator, project):
 
 def test_month_summary_with_gaps(conn, collaborator, project):
     dev, support = _task(conn, collaborator, "Desenvolvimento"), _task(conn, collaborator, "Suporte")
-    _entry(conn, collaborator, project, dev, work_date="2026-11-23", start="7", end="16:27", lunch="descontar")
+    _entry(conn, collaborator, project, dev, work_date="2026-11-23", start="7", end="16", lunch="descontar")
     _entry(conn, collaborator, project, support, work_date="2026-11-24", start="8", end="10", description="")
     _entry(conn, collaborator, project, dev, work_date="2026-11-22", start="9", end="10")  # domingo
     summary = time_entries_service.month_summary(conn, collaborator, 2026, 11, today=TODAY)
     days = {d.day: d for d in summary.days}
-    assert days[date(2026, 11, 23)].status is DayStatus.OK  # 8h27
+    assert days[date(2026, 11, 23)].status is DayStatus.OK  # 8:00 (jornada padrão)
     assert days[date(2026, 11, 24)].status is DayStatus.MISSING
     assert days[date(2026, 11, 22)].status is DayStatus.NOT_WORKDAY
     assert date(2026, 11, 21) not in days  # sábado sem horas não aparece
     assert date(2026, 11, 25) not in days  # futuro não aparece
     assert days[date(2026, 11, 2)].worked == 0
-    assert summary.total == 507 + 120 + 60
-    assert summary.rd_total == 507 + 60
+    assert summary.total == 480 + 120 + 60
+    assert summary.rd_total == 480 + 60
     assert summary.other_total == 120
     assert summary.entry_count == 3
     assert summary.missing_days == 16  # 17 dias úteis até 24/11, menos o dia 23 (OK); o 24 está incompleto

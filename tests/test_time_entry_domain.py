@@ -1,4 +1,4 @@
-"""Regras puras do apontamento (portadas do VBA da planilha antiga) e da jornada."""
+"""Regras puras do apontamento e da jornada."""
 
 from datetime import date
 
@@ -107,10 +107,30 @@ def test_month_helpers():
 
 
 def test_workday_expected_and_status():
-    assert expected_minutes(date(2026, 11, 23)) == 507  # segunda: 8h27
-    assert expected_minutes(date(2026, 11, 27)) == 462  # sexta: 7h42
+    assert expected_minutes(date(2026, 11, 23)) == 480  # segunda (padrão 8:00)
+    assert expected_minutes(date(2026, 11, 27)) == 480  # sexta
     assert expected_minutes(date(2026, 11, 28)) == 0  # sábado
-    assert day_status(507, 507) is DayStatus.OK
-    assert day_status(0, 507) is DayStatus.MISSING
-    assert day_status(600, 507) is DayStatus.EXCESS
+    assert day_status(480, 480) is DayStatus.OK
+    assert day_status(0, 480) is DayStatus.MISSING
+    assert day_status(600, 480) is DayStatus.EXCESS
     assert day_status(120, 0) is DayStatus.NOT_WORKDAY
+
+
+def test_schedule_is_configurable():
+    from apontarhoras.domain import workday
+
+    schedule = workday.parse_schedule("9:00, 9:00, 9:00, 9:00, 6:30, 0, 0")  # jornada fictícia
+    assert schedule == (540, 540, 540, 540, 390, 0, 0)
+    assert workday.schedule_text(schedule) == "seg–qui 9:00, sex 6:30"
+    assert workday.schedule_text() == "seg–sex 8:00"  # padrão
+    workday.configure_schedule(schedule)
+    assert expected_minutes(date(2026, 11, 27)) == 390  # sexta
+    invalid_values = [
+        "8:00, 8:00",
+        "8:00, 8:00, 8:00, 8:00, 8:60, 0, 0",
+        "25:00, 0, 0, 0, 0, 0, 0",
+        "a, 0, 0, 0, 0, 0, 0",
+    ]
+    for invalid in invalid_values:
+        with pytest.raises(ValidationError):
+            workday.parse_schedule(invalid)
