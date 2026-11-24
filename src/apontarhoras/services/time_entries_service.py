@@ -24,7 +24,7 @@ from apontarhoras.domain.time_entry import (
 )
 from apontarhoras.domain.user import User
 from apontarhoras.domain.workday import DayStatus, day_status, expected_minutes
-from apontarhoras.services import audit
+from apontarhoras.services import audit, holidays_service
 from apontarhoras.services.common import require_user, utcnow
 from apontarhoras.storage import projects_repo, tasks_repo, time_entries_repo
 from apontarhoras.storage.db import transaction
@@ -42,6 +42,7 @@ class DaySummary:
     worked: int
     expected: int
     status: DayStatus
+    holiday: str = ""  # descrição do feriado ("" = dia normal)
 
 
 @dataclass(frozen=True)
@@ -82,13 +83,16 @@ def month_summary(
 ) -> MonthSummary:
     """Os apontamentos do próprio usuário no mês, dia a dia, com a conferência contra a jornada.
 
-    Mostra todo dia útil até hoje (dia sem apontamento = pendência) e os fins de semana que tiverem horas.
+    Mostra todo dia útil até hoje (dia sem apontamento = pendência), os feriados (sem jornada, nunca pendência) e
+    os fins de semana que tiverem horas.
     """
     user = require_user(actor)
     today = today or local_today()
     first_day = date(year, month, 1)
     last_day = date(year, month, calendar.monthrange(year, month)[1])
     entries = time_entries_repo.list_for_user(conn, user.id, first_day, last_day)
+    holidays = holidays_service.holidays_in(conn, first_day, last_day)
+    holiday_days = frozenset(holidays)
     by_day: dict[date, list[TimeEntry]] = {}
     for entry in entries:
         by_day.setdefault(entry.work_date, []).append(entry)
@@ -99,11 +103,12 @@ def month_summary(
         if day > today:
             break
         day_entries = by_day.get(day, [])
-        expected = expected_minutes(day)
-        if expected == 0 and not day_entries:
+        expected = expected_minutes(day, holiday_days)
+        holiday = holidays.get(day, "")
+        if expected == 0 and not day_entries and not holiday:
             continue
         worked = sum(entry.minutes for entry in day_entries)
-        days.append(DaySummary(day, day_entries, worked, expected, day_status(worked, expected)))
+        days.append(DaySummary(day, day_entries, worked, expected, day_status(worked, expected), holiday))
 
     return MonthSummary(
         year=year,

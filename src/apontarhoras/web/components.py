@@ -21,6 +21,9 @@ MESSAGES = {
     "senha_trocada": "Senha alterada.",
     "senha_redefinida": "Senha temporária definida. Passe-a para a pessoa: ela vai trocá-la no próximo acesso.",
     "apontado": "Apontamento salvo.",
+    "importado": "Projetos importados. Confira a lista abaixo.",
+    "feriados_adicionados": "Feriados nacionais adicionados.",
+    "feriados_ja_existiam": "Os feriados nacionais deste ano já estavam cadastrados.",
 }
 
 
@@ -58,6 +61,7 @@ def _nav(ctx: Ctx) -> str:
             ("/usuarios", "Colaboradores"),
             ("/projetos", "Projetos"),
             ("/tarefas", "Tarefas"),
+            ("/feriados", "Feriados"),
             ("/auditoria", "Auditoria"),
         ]
     path = ctx.request.path
@@ -87,6 +91,7 @@ def layout(ctx: Ctx, title: str, body: str, *, error: str | None = None) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)} · {APP_NAME}</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body>
 <header class="top"><a class="brand" href="/">{APP_NAME}</a>{logout_area}</header>
