@@ -18,6 +18,15 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-24 — Contribuição, FAQ e regras do GitHub  `#docs`
+**Pedido:** regras para quem clonar/abrir PR + FAQ no README.
+**O que mudou:** `CONTRIBUTING.md` (fork → branch da `dev` → testes/lint → PR para a `dev`; regras: zero
+dependências, sem dados reais, permissão e testes, migrações; bugs sem dados pessoais; segurança sem issue
+pública); `.github/pull_request_template.md` (checklist) e `.github/ISSUE_TEMPLATE/bug.md`; README com FAQ (12
+perguntas) e seção Contribuindo; SEGURANCA.md › "Repositório no GitHub" (branch protection, aprovação de workflows
+de fork, avaliar repositório privado — só o dono configura). Verificado: o app não faz nenhuma chamada externa.
+Sem licença definida (FAQ diz para falar com o mantenedor).
+
 ## 2026-11-24 — Segurança: HTTPS configurável e SEGURANCA.md completo  `#seguranca #fix`
 **Pedido:** "questões de segurança tudo explicada?"
 **Bug:** o SEGURANCA.md dizia que o cookie `Secure` "estava previsto", mas `Settings.secure_cookies` nunca era lido
