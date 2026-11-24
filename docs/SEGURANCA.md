@@ -47,7 +47,7 @@ em quando: copie o backup para uma pasta de teste, aponte um `ApontarHoras.ini` 
   **Auditoria › Verificar integridade** mostra "ALTERAÇÃO DETECTADA a partir do registro #N".
   - Limitação: o código é público e não há segredo. Quem tem acesso ao arquivo pode apagar os últimos registros ou
     recalcular a corrente inteira sem que ela "perceba". Por isso o responsável **anota o número e o selo do último
-    registro** (mostrados na mesma tela) de tempos em tempos — por exemplo, no fechamento do mês — e guarda fora do
+    registro** (mostrados na mesma tela) de tempos em tempos — por exemplo, ao conferir o mês — e guarda fora do
     servidor. Depois confere ali mesmo ("Conferir o selo do registro nº"): se o registro sumiu ou o selo mudou, houve
     alteração.
   - A corrente detecta; não impede. Impedir é papel da permissão da pasta e do backup.
