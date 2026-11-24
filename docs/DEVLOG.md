@@ -18,6 +18,17 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-24 — Dados internos fora do repositório: jornada configurável  `#seguranca #fix`
+**Pedido:** "verifique se não teve nenhum dado da empresa do Excel que foi pro git; se tiver, ajuste".
+**Varredura (todo o histórico, todas as branches, mensagens de commit):** a planilha nunca foi commitada; nenhum
+nome, código/cliente de projeto, senha ou caminho do arquivo. Mas havia **regras internas** tiradas dele: a jornada
+da empresa (fixa no código, testes, telas e docs) e uma descrição do arquivo que citava uma fraqueza dele.
+**Correção:** jornada sai do código → opção `jornada` no `ApontarHoras.ini` (padrão genérico 8:00 seg–sex),
+`workday.configure_schedule` na partida, telas mostram `schedule_text()`; testes usam o padrão + testes novos com
+jornada fictícia; DOMAIN › "Modelo de origem" genérico; comentários sem referência ao arquivo interno.
+**Pendente (decisão do usuário):** versões antigas no histórico público ainda contêm a jornada e a descrição antiga;
+removê-las exige reescrever o histórico e forçar o push.
+
 ## 2026-11-24 — Contribuição, FAQ e regras do GitHub  `#docs`
 **Pedido:** regras para quem clonar/abrir PR + FAQ no README.
 **O que mudou:** `CONTRIBUTING.md` (fork → branch da `dev` → testes/lint → PR para a `dev`; regras: zero
@@ -80,11 +91,11 @@ as duas; com pastas de dados diferentes, horas em dois bancos) → `AppServer` u
 → a 2ª cópia falha com "porta em uso". Teste `test_second_instance_cannot_share_port`. 104 testes + ruff ok.
 **Arquivos:** `web/server.py`, `tests/test_web.py`, `docs/DOMAIN.md`, `docs/ROADMAP.md`.
 
-## 2026-11-24 — Apontamento a partir da planilha antiga  `#feat #decisao`
+## 2026-11-24 — Apontamento a partir do modelo em planilha  `#feat #decisao`
 **Fase:** 1 — MVP
 **Pedido:** usuário trouxe a planilha usada hoje ("copiar os modelos e melhorar o que for necessário").
-**Análise:** lida pelo XML e pelo VBA extraído (5 formulários). Regras resumidas em DOMAIN › Planilha antiga.
-Dados reais (nomes, clientes) e a senha de proteção do VBA **não** foram copiados para o repositório (público).
+**Análise:** regras de lançamento e de conferência resumidas em DOMAIN › Modelo de origem. Nenhum dado do arquivo
+(nomes, clientes, jornada, detalhes internos) foi copiado para o repositório (público).
 **Decisões:** D6 = início/término por atividade, como na planilha; operador = usuário logado; Lei do Bem =
 projeto elegível **e** tarefa elegível, guardada no apontamento; edição permitida (a planilha só excluía).
 **O que mudou:**

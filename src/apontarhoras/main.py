@@ -16,6 +16,8 @@ from pathlib import Path
 
 from apontarhoras import APP_NAME, __version__
 from apontarhoras.config import Settings, default_data_dir
+from apontarhoras.domain.errors import ValidationError
+from apontarhoras.domain.workday import DEFAULT_SCHEDULE, configure_schedule, parse_schedule, schedule_text
 from apontarhoras.storage.db import Database
 from apontarhoras.web.app import App
 from apontarhoras.web.server import AppServer
@@ -55,8 +57,14 @@ def load_settings(argv: list[str] | None = None) -> tuple[Settings, bool]:
     open_browser = not args.sem_navegador and ini.get("abrir_navegador", "sim").strip().lower() in _YES
     # https = sim: o app está atrás de um proxy HTTPS; o cookie de sessão ganha `Secure` (nunca vai por HTTP).
     secure_cookies = ini.get("https", "nao").strip().lower() in _YES
+    schedule_text = ini.get("jornada", "").strip()
+    schedule = parse_schedule(schedule_text) if schedule_text else DEFAULT_SCHEDULE
     settings = Settings(
-        data_dir=data_dir, host="0.0.0.0" if network else "127.0.0.1", port=port, secure_cookies=secure_cookies
+        data_dir=data_dir,
+        host="0.0.0.0" if network else "127.0.0.1",
+        port=port,
+        secure_cookies=secure_cookies,
+        schedule=schedule,
     )
     return settings, open_browser
 
@@ -65,9 +73,10 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     try:
         settings, open_browser = load_settings(argv)
-    except (ValueError, configparser.Error) as exc:
+    except (ValueError, configparser.Error, ValidationError) as exc:
         print(f"Configuração inválida: {exc}")
         return 1
+    configure_schedule(settings.schedule)
     database = Database(settings.db_path)
     try:
         database.initialize()
@@ -86,6 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     if settings.host == "0.0.0.0":
         print(f"  Na rede/VPN:      http://{socket.gethostname()}:{settings.port}/")
     print(f"  Dados:            {settings.db_path}")
+    print(f"  Jornada:          {schedule_text(settings.schedule)}")
     print("  Para parar: feche esta janela (ou Ctrl+C).")
     if open_browser:
         threading.Timer(1.0, webbrowser.open, args=(local_url,)).start()

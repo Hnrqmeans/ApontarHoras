@@ -23,7 +23,7 @@ SEAL_SHORT_HEX = 16
 
 
 class ReportKind(StrEnum):
-    """Filtro "tipo" da planilha antiga."""
+    """Filtro "tipo" do relatório."""
 
     ALL = ""
     RD = "lei"

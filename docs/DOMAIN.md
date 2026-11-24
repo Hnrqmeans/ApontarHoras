@@ -11,20 +11,19 @@ dados de meses já conferidos não podem mudar sem registro.
 **MVP (Fase 1):** papéis só `colaborador` e `responsável` (= admin); o mês **não trava** (D9, 2026-11-24): lançar ou corrigir depois da virada do mês é permitido e fica rastreado.
 As tabelas abaixo com `gestor`, `enviado`, `devolvido` e `aprovado` são a versão completa, **para depois**.
 
-## Planilha antiga (referência, analisada em 2026-11-24)
-Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo fora do git: tem dados reais).
-- **Tabela de apontamentos:** ID, data, operador, projeto, Grau P&D (1/0), tarefa, início, término, horas, mês,
-  observações. **Listas:** projetos (`código - cliente - nome`), operadores, tarefas com Grau P&D.
-- **Formulário de apontamento (VBA):** sem data futura; operador/projeto/tarefa só da lista; horário aceita
-  `7`, `730`, `7:30`; término > início; **sem sobreposição** no mesmo dia; período que começa antes das 12:00 e
-  termina depois das 13:00 **pergunta** se desconta 1 h de almoço; Grau P&D vem da **tarefa** (projeto
-  "Tarefas Internas" = 0); **observação obrigatória quando Grau P&D = 1**.
-- **Inconsistências:** por operador e período, compara o apontado com a jornada (seg–qui 8h27, sex 7h42) →
-  OK / Pendência / Verificar. **Relatório:** filtros (operador, projeto, Lei do Bem/não elegível, período),
-  totais Lei do Bem × não elegível, PDF. **Painel:** horas totais, % Lei do Bem, horas por projeto e por tarefa.
-- **Fraquezas que o app corrige:** qualquer pessoa aponta em nome de outra; não há edição (só excluir e
-  relançar); sem auditoria nem fechamento do mês; senha de proteção dentro do VBA; arquivo único sem controle de
-  acesso simultâneo; Grau P&D antigo fica divergente da lista atual sem explicação.
+## Modelo de origem (referência)
+As regras vieram do controle em planilha usado antes do app (arquivo fora do git, com dados reais; **nada dele é
+copiado para o repositório** — nem dados, nem jornada, nem detalhes internos do arquivo).
+- **Campos:** data, pessoa, projeto (`código - cliente - nome`), tarefa (com indicação Lei do Bem), início, término,
+  horas e observação.
+- **Regras de lançamento:** sem data futura; projeto/tarefa só da lista; horário aceita `7`, `730`, `7:30`;
+  término > início; **sem sobreposição** no mesmo dia; período que começa antes das 12:00 e termina depois das
+  13:00 **pergunta** se desconta 1 h de almoço; Lei do Bem vem da **tarefa** (projeto que não é P&D = não
+  elegível); **observação obrigatória quando conta para a Lei do Bem**.
+- **Conferência e relatório:** horas apontadas × jornada esperada por dia → OK / Pendência / Verificar; filtros por
+  pessoa, projeto, tipo e período; totais Lei do Bem × não elegível; painel por projeto e tarefa.
+- **O que o app acrescenta:** cada pessoa só aponta por si; correção com histórico; auditoria encadeada;
+  conferência do mês com selo; acesso simultâneo seguro.
 
 ## Conceitos
 | Conceito         | Descrição                                                                                     |
@@ -37,11 +36,11 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
 | **Tarefa**       | Tipo de atividade (Desenvolvimento, Suporte…); define se a hora conta para a Lei do Bem.      |
 | **Apontamento**  | Registro de horas: usuário, data, projeto, atividade, duração (min), início/fim opcionais, descrição. |
 | **Conferência**  | Retrato do mês marcado pelo responsável (selo SHA-256). Não trava nada (D9).                  |
-| **Jornada esperada** | Minutos previstos por dia útil: seg–qui 507 (8h27), sex 462 (7h42); feriado 0. Base das lacunas. |
+| **Jornada esperada** | Minutos previstos por dia da semana, definidos no `ApontarHoras.ini` (`jornada`); padrão 8:00 seg–sex; feriado 0. |
 | **Período**      | (Depois) intervalo enviado para aprovação de uma vez — só se o fluxo de aprovação vier.        |
 
 ## Regras
-### Apontamento (implementado 2026-11-24, regras da planilha antiga)
+### Apontamento (implementado 2026-11-24)
 - Campos: data, projeto, tarefa, **início e término** (obrigatórios), almoço, descrição. Sempre em nome do
   **usuário logado** (ninguém aponta por outra pessoa).
 - Horário aceita `7`, `07`, `730`, `7:30`, `7h30`; vai de 00:00 a 23:59 (sem virar a noite). Término > início.
@@ -61,7 +60,8 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
   - **Conferência do responsável**: o que for criado/alterado depois dela aparece como "Alterado após a conferência".
 
 ### Jornada e lacunas (implementado 2026-11-24)
-- Jornada esperada: seg–qui **8h27**, sex **7h42**, sábado/domingo 0 (constante em `domain/workday.py`).
+- Jornada esperada: configurada no `ApontarHoras.ini` do servidor (`jornada = H:MM` de segunda a domingo); sem
+  configuração, **8:00 de segunda a sexta**. A jornada real da empresa fica só no `.ini` do servidor, nunca no git.
 - "Meus apontamentos" mostra cada dia útil até hoje: **OK** (igual), **Pendência** (menos), **Verificar** (mais).
   Fim de semana só aparece se tiver horas.
 - **Feriados** (cadastro do responsável, tela Feriados): o dia tem jornada 0 e aparece como "Feriado: descrição",
@@ -71,7 +71,7 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
 - ⏳ Jornada por pessoa (hoje é a mesma para todos).
 
 ### Relatório, conferência e exportação (implementado 2026-11-24, só o responsável)
-- **Relatório** (`/relatorio`): filtros da planilha antiga — período (padrão = mês atual; máx. 366 dias),
+- **Relatório** (`/relatorio`): filtros — período (padrão = mês atual; máx. 366 dias),
   colaborador, projeto, tipo (Todos / Lei do Bem / Não elegível) e tarefa. Totais: nº de apontamentos, horas, horas
   Lei do Bem e %, não elegíveis. **Painel**: horas por projeto, por tarefa e por colaborador (barras com o número).
 - **Pendências da equipe** (`/relatorio/pendencias`): por pessoa ativa, no mês, dias com pendência, dias a verificar
@@ -85,7 +85,7 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
   começa com `= + - @` recebe `'` no Excel (sem fórmula injetada). Toda exportação fica na auditoria.
 
 ### Tarefas (implementado 2026-11-24)
-- Cadastro do responsável: nome único (2–60), "Conta para a Lei do Bem", ativa. Vêm 9 da planilha antiga:
+- Cadastro do responsável: nome único (2–60), "Conta para a Lei do Bem", ativa. Vêm 9 tarefas padrão (editáveis):
   Lei do Bem = Desenvolvimento, Documentação, Atualização, Testes e Validações, Reuniões Externas;
   não = Manutenção, Suporte, Correções, Reuniões Internas.
 

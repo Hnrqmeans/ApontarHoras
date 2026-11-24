@@ -11,7 +11,7 @@ CREATE TABLE tasks (
     created_at  TEXT    NOT NULL
 );
 
--- Tarefas da planilha antiga ("Grau P&D": 1 = Lei do Bem). O responsável pode mudar depois.
+-- Tarefas padrão (1 = conta para a Lei do Bem). O responsável pode mudar depois.
 INSERT INTO tasks (name, rd_eligible, created_at) VALUES
     ('Desenvolvimento',     1, strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now')),
     ('Documentação',        1, strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now')),

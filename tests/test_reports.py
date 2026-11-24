@@ -71,7 +71,7 @@ def test_parse_filters_defaults_and_limits():
 
 def test_report_math_helpers():
     assert share_percent(1, 3) == 33 and share_percent(5, 0) == 0
-    assert decimal_hours(510) == Decimal("8.50") and decimal_hours(507) == Decimal("8.45")
+    assert decimal_hours(510) == Decimal("8.50") and decimal_hours(525) == Decimal("8.75")
     assert decimal_hours(1) == Decimal("0.02")  # arredonda meio para cima
     assert bar_step(0, 100) == 0 and bar_step(100, 100) == 100 and bar_step(50, 100) == 50
     assert bar_step(1, 1000) == 5  # valor positivo nunca some
@@ -137,16 +137,16 @@ def test_only_admin_reaches_reports(conn, collaborator, setup):
 
 def test_team_pending_uses_workday_rule(conn, admin, collaborator, setup):
     project, _, tasks = setup
-    # 23/11 (seg): jornada inteira 8:27; 24/11 (ter): só 1 h → pendência; demais dias úteis vazios → pendência
-    _entry(conn, collaborator, project, tasks["Desenvolvimento"], "2026-11-23", "8", "1627", lunch="sem_intervalo")
+    # 23/11 (seg): jornada inteira 8:00; 24/11 (ter): só 1 h → pendência; demais dias úteis vazios → pendência
+    _entry(conn, collaborator, project, tasks["Desenvolvimento"], "2026-11-23", "8", "16", lunch="sem_intervalo")
     _entry(conn, collaborator, project, tasks["Desenvolvimento"], "2026-11-24", "8", "9")
     team = reports_service.team_pending(conn, admin, 2026, 11, today=TODAY)
     bruno = next(m for m in team.members if m.user.id == collaborator.id)
     workdays = 17  # dias úteis de 01 a 24/11/2026
     assert bruno.missing_days == workdays - 1
     assert bruno.excess_days == 0
-    assert bruno.worked == 507 + 60
-    assert bruno.expected == 14 * 507 + 3 * 462  # seg–qui 8:27, sex 7:42
+    assert bruno.worked == 480 + 60
+    assert bruno.expected == workdays * 480  # jornada padrão: 8:00 seg–sex
     assert bruno.balance == bruno.worked - bruno.expected
     assert {m.user.id for m in team.members} == {admin.id, collaborator.id}
 

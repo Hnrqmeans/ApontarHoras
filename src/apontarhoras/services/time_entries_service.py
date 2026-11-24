@@ -1,7 +1,8 @@
 """Apontamento de horas: o colaborador aponta, corrige e exclui os próprios; o responsável pode corrigir qualquer um.
 
-Regras (herdadas da planilha antiga): sem data futura, término > início, almoço perguntado quando o período passa
-pelas 12:00–13:00, sem sobreposição no mesmo dia, descrição obrigatória quando a hora conta para a Lei do Bem.
+Regras (herdadas do modelo em planilha usado antes): sem data futura, término > início, almoço perguntado
+quando o período passa pelas 12:00–13:00, sem sobreposição no mesmo dia, descrição obrigatória quando a hora
+conta para a Lei do Bem.
 """
 
 import calendar

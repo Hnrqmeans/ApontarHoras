@@ -10,7 +10,7 @@ from apontarhoras.domain.errors import ValidationError
 class Task:
     id: int
     name: str
-    rd_eligible: bool  # horas desta tarefa contam para a Lei do Bem ("Grau P&D" da planilha antiga)
+    rd_eligible: bool  # horas desta tarefa contam para a Lei do Bem
     active: bool
     created_at: datetime
 
