@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Build / executável
+build/
+dist/
+*.spec
+
+# Banco de dados (nunca versionar dados da empresa)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Segredos / configuração local (repositório é PÚBLICO)
+.env
+.env.*
+*.pem
+*.key
+config.local.*
+.claude/settings.local.json
+
+# Exportações, exemplos e planilhas com dados reais da equipe (testes usam dados fictícios)
+exemplos/
+exportacoes/
+*.pdf
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+!tests/fixtures/**
+
+# IDE / SO
+.vscode/*
+!.vscode/settings.json
+.idea/
+Thumbs.db

@@ -1,0 +1,311 @@
+"""Ponta a ponta: servidor HTTP de verdade numa porta livre, navegando como um usuário (urllib + cookies)."""
+
+import io
+import re
+import threading
+import urllib.error
+import urllib.parse
+import urllib.request
+import zipfile
+from http.cookiejar import CookieJar
+
+import pytest
+
+from apontarhoras.web.app import App
+from apontarhoras.web.server import AppServer
+
+ADMIN_PASSWORD = "senha-do-admin-1"
+
+
+class Browser:
+    def __init__(self, base: str) -> None:
+        self.base = base
+        self.cookies = CookieJar()
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookies))
+        self.last = ""
+
+    def _open(self, request: urllib.request.Request) -> tuple[int, str, str, dict]:
+        try:
+            with self.opener.open(request, timeout=10) as response:
+                body = response.read().decode("utf-8")
+                result = (response.status, urllib.parse.urlsplit(response.url).path, body, dict(response.headers))
+        except urllib.error.HTTPError as error:
+            body = error.read().decode("utf-8")
+            result = (error.code, urllib.parse.urlsplit(error.url).path, body, dict(error.headers))
+        self.last = result[2]
+        return result
+
+    def get(self, path: str):
+        return self._open(urllib.request.Request(self.base + path))
+
+    def post(self, path: str, data: dict, *, csrf: bool = True, headers: dict | None = None):
+        fields = dict(data)
+        if csrf:
+            match = re.search(r'name="csrf" value="([^"]+)"', self.last)
+            if match:
+                fields["csrf"] = match.group(1)
+        encoded = urllib.parse.urlencode(fields).encode()
+        return self._open(urllib.request.Request(self.base + path, data=encoded, headers=headers or {}))
+
+
+@pytest.fixture
+def server(db):
+    httpd = AppServer(("127.0.0.1", 0), App(db))
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    yield f"http://127.0.0.1:{httpd.server_address[1]}"
+    httpd.shutdown()
+    httpd.server_close()
+
+
+def _setup_admin(server) -> Browser:
+    browser = Browser(server)
+    status, path, _, _ = browser.get("/")
+    assert path == "/primeiro-acesso"
+    status, path, body, _ = browser.post(
+        "/primeiro-acesso",
+        {"nome": "Ana Responsável", "login": "ana", "senha": ADMIN_PASSWORD, "confirmacao": ADMIN_PASSWORD},
+    )
+    assert (status, path) == (200, "/")
+    assert "Responsável criado" in body
+    return browser
+
+
+def test_first_access_and_security_headers(server):
+    browser = _setup_admin(server)
+    _, _, _, headers = browser.get("/")
+    assert "script-src 'none'" in headers["Content-Security-Policy"]
+    assert headers["X-Frame-Options"] == "DENY"
+    assert "HttpOnly" in str(browser.cookies) or any(c.name == "ah_sessao" for c in browser.cookies)
+    # primeiro acesso não pode ser refeito
+    _, path, _, _ = browser.get("/primeiro-acesso")
+    assert path == "/"
+
+
+def test_requires_login(server):
+    _setup_admin(server)
+    anonymous = Browser(server)
+    _, path, body, _ = anonymous.get("/usuarios")
+    assert path == "/entrar"
+    status, _, body, _ = anonymous.post("/entrar", {"login": "ana", "senha": "errada-123"})
+    assert "Usuário ou senha inválidos" in body
+    status, path, _, _ = anonymous.post("/entrar", {"login": "ana", "senha": ADMIN_PASSWORD})
+    assert (status, path) == (200, "/")
+
+
+def test_admin_flow_users_and_projects(server):
+    admin = _setup_admin(server)
+    # novo projeto
+    admin.get("/projetos/novo")
+    _, path, body, _ = admin.post("/projetos/novo", {"codigo": "pd-01", "nome": "Sensor <novo>", "descricao": ""})
+    assert path == "/projetos"
+    assert "PD-01" in body
+    assert "Sensor &lt;novo&gt;" in body  # texto do usuário sempre escapado
+    project_id = re.search(r"/projetos/(\d+)/excluir", body).group(1)
+    # exclusão em dois cliques: link → página de confirmação → confirmar
+    _, _, body, _ = admin.get(f"/projetos/{project_id}/excluir")
+    assert "Confirmar exclusão" in body
+    _, path, body, _ = admin.post(f"/projetos/{project_id}/excluir", {})
+    assert path == "/projetos"
+    assert "PD-01" not in body
+    # novo colaborador
+    admin.get("/usuarios/novo")
+    _, path, body, _ = admin.post(
+        "/usuarios/novo", {"nome": "Bruno Colaborador", "login": "bruno", "papel": "colaborador",
+                           "senha": "temporaria-123"}
+    )
+    assert path == "/usuarios"
+    assert "Aguardando 1º acesso" in body
+    # auditoria mostra o que foi feito
+    _, _, body, _ = admin.get("/auditoria")
+    assert "Criou" in body and "Excluiu" in body
+
+
+def test_collaborator_flow_and_permissions(server):
+    admin = _setup_admin(server)
+    admin.get("/usuarios/novo")
+    admin.post("/usuarios/novo", {"nome": "Bruno Colaborador", "login": "bruno", "papel": "colaborador",
+                                  "senha": "temporaria-123"})
+    bruno = Browser(server)
+    bruno.get("/entrar")
+    _, path, _, _ = bruno.post("/entrar", {"login": "bruno", "senha": "temporaria-123"})
+    assert path == "/trocar-senha"  # senha temporária: obrigado a trocar
+    _, path, _, _ = bruno.get("/")
+    assert path == "/trocar-senha"
+    _, path, body, _ = bruno.post(
+        "/trocar-senha", {"atual": "temporaria-123", "nova": "senha-do-bruno", "confirmacao": "senha-do-bruno"}
+    )
+    assert path == "/"
+    assert "Senha alterada" in body
+    # colaborador não acessa telas do responsável
+    for url in ["/usuarios", "/projetos", "/auditoria", "/usuarios/1/editar"]:
+        status, _, _, _ = bruno.get(url)
+        assert status == 403, url
+    status, _, _, _ = bruno.post("/usuarios/novo", {"nome": "X Y", "login": "xy", "papel": "admin",
+                                                    "senha": "qualquer-123"})
+    assert status == 403
+
+
+def test_post_without_csrf_is_rejected(server):
+    admin = _setup_admin(server)
+    status, _, body, _ = admin.post("/projetos/novo", {"codigo": "P1", "nome": "Projeto"}, csrf=False)
+    assert status == 403
+    assert "expirou" in body
+
+
+def test_post_from_other_site_is_rejected(server):
+    admin = _setup_admin(server)
+    admin.get("/projetos/novo")
+    status, _, _, _ = admin.post("/projetos/novo", {"codigo": "P1", "nome": "Projeto"},
+                                 headers={"Origin": "http://site-malicioso.exemplo"})
+    assert status == 403
+
+
+def test_second_instance_cannot_share_port(db):
+    """Duas cópias na mesma porta dividiriam as requisições em silêncio: a 2ª tem que falhar."""
+    first = AppServer(("127.0.0.1", 0), App(db))
+    try:
+        with pytest.raises(OSError):
+            AppServer(("127.0.0.1", first.server_address[1]), App(db))
+    finally:
+        first.server_close()
+
+
+def test_browser_origin_is_accepted(server):
+    """Navegador de verdade manda `Origin` em todo POST; a política de referrer não pode virar `Origin: null`."""
+    browser = Browser(server)
+    _, _, _, headers = browser.get("/primeiro-acesso")
+    assert headers["Referrer-Policy"] != "no-referrer"
+    status, path, _, _ = browser.post(
+        "/primeiro-acesso",
+        {"nome": "Ana Responsável", "login": "ana", "senha": ADMIN_PASSWORD, "confirmacao": ADMIN_PASSWORD},
+        headers={"Origin": server},
+    )
+    assert (status, path) == (200, "/")
+    status, _, _, _ = browser.post("/sair", {}, headers={"Origin": "null"})
+    assert status == 403  # origem opaca continua recusada
+
+
+def test_logout(server):
+    admin = _setup_admin(server)
+    admin.get("/")
+    _, path, _, _ = admin.post("/sair", {})
+    assert path == "/entrar"
+    _, path, _, _ = admin.get("/usuarios")
+    assert path == "/entrar"
+
+
+def test_static_and_not_found(server):
+    browser = Browser(server)
+    status, _, body, headers = browser.get("/static/style.css")
+    assert status == 200 and "--primary" in body
+    status, _, _, _ = browser.get("/static/../app.py")
+    assert status == 404
+
+
+def test_collaborator_records_hours(server):
+    admin = _setup_admin(server)
+    admin.get("/projetos/novo")
+    admin.post("/projetos/novo", {"codigo": "pd-01", "nome": "Sensor novo", "descricao": "", "lei_do_bem": "1"})
+    admin.get("/usuarios/novo")
+    admin.post("/usuarios/novo", {"nome": "Bruno Colaborador", "login": "bruno", "papel": "colaborador",
+                                  "senha": "temporaria-123"})
+    bruno = Browser(server)
+    bruno.get("/entrar")
+    bruno.post("/entrar", {"login": "bruno", "senha": "temporaria-123"})
+    bruno.post("/trocar-senha", {"atual": "temporaria-123", "nova": "senha-do-bruno", "confirmacao": "senha-do-bruno"})
+    _, _, form_page, _ = bruno.get("/apontamentos/novo")
+    project_id = re.search(r'<option value="(\d+)">PD-01', form_page).group(1)
+    task_id = re.search(r'<option value="(\d+)">Desenvolvimento', form_page).group(1)
+    today = __import__("datetime").date.today().isoformat()
+    fields = {"data": today, "projeto": project_id, "tarefa": task_id, "inicio": "7", "termino": "1630",
+              "almoco": "", "descricao": "Calibração do <sensor>"}
+    # passa pelo almoço sem responder: volta com o erro e mantém o que foi digitado
+    _, path, body, _ = bruno.post("/apontamentos/novo", fields)
+    assert path == "/apontamentos/novo" and "horário de almoço" in body and "1630" in body
+    _, path, body, _ = bruno.post("/apontamentos/novo", {**fields, "almoco": "descontar"})
+    assert path == "/apontamentos"
+    assert "Apontamento salvo" in body and "8:30" in body
+    assert "Calibração do &lt;sensor&gt;" in body
+    # colaborador não acessa o cadastro de tarefas; outra pessoa não vê o apontamento dele
+    status, _, _, _ = bruno.get("/tarefas")
+    assert status == 403
+    entry_id = re.search(r"/apontamentos/(\d+)/editar", body).group(1)
+    _, _, mine, _ = admin.get("/apontamentos")
+    assert "Calibração" not in mine
+    status, _, _, _ = admin.get(f"/apontamentos/{entry_id}/editar")  # responsável pode corrigir
+    assert status == 200
+
+
+def _download(browser: Browser, path: str) -> tuple[int, bytes, dict]:
+    """Exportação binária (.xlsx): lê os bytes sem decodificar como texto."""
+    with browser.opener.open(urllib.request.Request(browser.base + path), timeout=10) as response:
+        return response.status, response.read(), dict(response.headers)
+
+
+def test_report_review_and_exports(server):
+    admin = _setup_admin(server)
+    admin.get("/projetos/novo")
+    admin.post("/projetos/novo", {"codigo": "pd-01", "nome": "Sensor novo", "descricao": "", "lei_do_bem": "1"})
+    _, _, form_page, _ = admin.get("/apontamentos/novo")
+    project_id = re.search(r'<option value="(\d+)">PD-01', form_page).group(1)
+    task_id = re.search(r'<option value="(\d+)">Desenvolvimento', form_page).group(1)
+    today = __import__("datetime").date.today()
+    admin.post("/apontamentos/novo", {"data": today.isoformat(), "projeto": project_id, "tarefa": task_id,
+                                      "inicio": "8", "termino": "10", "almoco": "", "descricao": "Ensaio <x>"})
+    # relatório + painel (padrão = mês atual)
+    status, _, body, _ = admin.get("/relatorio")
+    assert status == 200
+    assert 'href="/relatorio" class="active">Relatório' in body
+    assert "Ensaio &lt;x&gt;" in body and "Horas por projeto" in body
+    assert 'class="bar w-100"' in body and "2:00" in body
+    assert "style=" not in body  # a CSP bloqueia estilo inline
+    _, _, body, _ = admin.get("/relatorio?inicio=2020-01-01&fim=2026-12-31")
+    assert "no máximo 366 dias" in body
+    # impressão / PDF
+    query = urllib.parse.urlencode({"inicio": today.replace(day=1).isoformat(), "fim": today.isoformat()})
+    status, _, body, _ = admin.get(f"/relatorio/imprimir?{query}")
+    assert status == 200
+    assert "RELATÓRIO DE APONTAMENTOS P&amp;D" in body and "Salvar como PDF" in body
+    seal = re.search(r'class="seal">([0-9a-f ]{19})<', body).group(1)
+    # Excel
+    status, content, headers = _download(admin, f"/relatorio/excel?{query}")
+    assert status == 200
+    assert headers["Content-Type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    expected_name = f"apontamentos_{today.replace(day=1).isoformat()}_{today.isoformat()}.xlsx"
+    assert headers["Content-Disposition"] == f'attachment; filename="{expected_name}"'
+    with zipfile.ZipFile(io.BytesIO(content)) as archive:
+        summary = archive.read("xl/worksheets/sheet2.xml").decode()
+        assert seal in summary  # mesmo selo na impressão e no Excel
+        assert "Ensaio &lt;x&gt;" in archive.read("xl/worksheets/sheet1.xml").decode()
+    # pendências + conferência do mês
+    _, _, body, _ = admin.get("/relatorio/pendencias")
+    assert "Marcar mês como conferido" in body and "Ana Responsável" in body
+    month = today.strftime("%Y-%m")
+    _, path, body, _ = admin.post("/relatorio/conferir", {"mes": month})
+    assert path == "/relatorio/pendencias" and "Mês marcado como conferido" in body
+    assert "Conferido em" in body
+    _, _, body, _ = admin.get("/relatorio/pendencias")
+    admin.post("/relatorio/conferir", {"mes": "2099-01"})
+    assert "mês futuro" in admin.last
+    _, _, body, _ = admin.get("/auditoria")
+    assert "Conferiu" in body and "Exportou" in body and "Conferência do mês" in body
+
+
+def test_collaborator_cannot_reach_reports(server):
+    admin = _setup_admin(server)
+    admin.get("/usuarios/novo")
+    admin.post("/usuarios/novo", {"nome": "Bruno Colaborador", "login": "bruno", "papel": "colaborador",
+                                  "senha": "temporaria-123"})
+    bruno = Browser(server)
+    bruno.get("/entrar")
+    bruno.post("/entrar", {"login": "bruno", "senha": "temporaria-123"})
+    _, _, body, _ = bruno.post("/trocar-senha", {"atual": "temporaria-123", "nova": "senha-do-bruno",
+                                                 "confirmacao": "senha-do-bruno"})
+    assert "/relatorio" not in body  # nem aparece no menu
+    for url in ["/relatorio", "/relatorio/excel", "/relatorio/imprimir", "/relatorio/pendencias"]:
+        status, _, _, _ = bruno.get(url)
+        assert status == 403, url
+    bruno.get("/")
+    status, _, _, _ = bruno.post("/relatorio/conferir", {"mes": "2026-11"})
+    assert status == 403
