@@ -18,6 +18,15 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-24 — Docs prontos para os próximos releases  `#docs`
+**Pedido:** "todos os documentos atualizados? pra ajudar nos próximos releases".
+**Corrigido (estava desatualizado):** CLAUDE.md ainda dizia "apontamento fechado não se edita" (contra D9) e
+"Excel/PDF serão gerados"; DOMAIN ainda tinha estados `fechado`/"Fechar/reabrir período" e jornada 480; ROADMAP com
+contagens de testes antigas e D4 em aberto; SEGURANCA.md e a tela de Auditoria falavam em "fechamento do mês".
+**Acrescentado:** CLAUDE.md — regras aprendidas (numeração de migração, `Origin` nos testes web e `Referrer-Policy`,
+teste de carga, commits sem coautoria e varredura de dado real); DESENVOLVEDOR — checklist de release; README
+profissional; `main` recebeu a `dev` como v0.1.0 sem tag (pedido do usuário, exceção à regra do teste manual).
+
 ## 2026-11-24 — Fase 1 completa: confiança, relatório e implantação (3 frentes em paralelo)  `#feat #seguranca #relatorio`
 **Fase:** 1 — MVP
 **Pedido:** "implementar tudo que falta", com agentes em paralelo; versão continua v0.1.0 (ninguém testou ainda).
