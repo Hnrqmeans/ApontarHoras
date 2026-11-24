@@ -6,7 +6,7 @@ from datetime import datetime
 from apontarhoras.domain.project import Project
 from apontarhoras.storage.db import from_db_time, to_db_time
 
-_COLUMNS = "id, code, name, description, active, created_at"
+_COLUMNS = "id, code, name, description, active, rd_eligible, created_at"
 
 
 def _to_project(row: sqlite3.Row) -> Project:
@@ -16,6 +16,7 @@ def _to_project(row: sqlite3.Row) -> Project:
         name=row["name"],
         description=row["description"],
         active=bool(row["active"]),
+        rd_eligible=bool(row["rd_eligible"]),
         created_at=from_db_time(row["created_at"]),
     )
 
@@ -38,20 +39,29 @@ def code_taken(conn: sqlite3.Connection, code: str, *, exclude_id: int | None = 
     return row is not None
 
 
-def insert(conn: sqlite3.Connection, *, code: str, name: str, description: str, now: datetime) -> int:
+def insert(
+    conn: sqlite3.Connection, *, code: str, name: str, description: str, rd_eligible: bool, now: datetime
+) -> int:
     cursor = conn.execute(
-        "INSERT INTO projects (code, name, description, created_at) VALUES (?, ?, ?, ?)",
-        (code, name, description, to_db_time(now)),
+        "INSERT INTO projects (code, name, description, rd_eligible, created_at) VALUES (?, ?, ?, ?, ?)",
+        (code, name, description, int(rd_eligible), to_db_time(now)),
     )
     return cursor.lastrowid
 
 
 def update(
-    conn: sqlite3.Connection, project_id: int, *, code: str, name: str, description: str, active: bool
+    conn: sqlite3.Connection,
+    project_id: int,
+    *,
+    code: str,
+    name: str,
+    description: str,
+    active: bool,
+    rd_eligible: bool,
 ) -> None:
     conn.execute(
-        "UPDATE projects SET code = ?, name = ?, description = ?, active = ? WHERE id = ?",
-        (code, name, description, int(active), project_id),
+        "UPDATE projects SET code = ?, name = ?, description = ?, active = ?, rd_eligible = ? WHERE id = ?",
+        (code, name, description, int(active), int(rd_eligible), project_id),
     )
 
 

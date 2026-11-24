@@ -19,6 +19,8 @@ ACTION_LABELS = {
 ENTITY_LABELS = {
     "user": "Usuário",
     "project": "Projeto",
+    "task": "Tarefa",
+    "time_entry": "Apontamento",
 }
 
 

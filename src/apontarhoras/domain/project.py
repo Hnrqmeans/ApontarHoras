@@ -16,6 +16,7 @@ class Project:
     name: str
     description: str
     active: bool
+    rd_eligible: bool  # projeto de P&D (Lei do Bem); "tarefas internas" = não elegível
     created_at: datetime
 
 

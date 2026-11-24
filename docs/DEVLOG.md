@@ -18,6 +18,32 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-24 — Apontamento a partir da planilha antiga  `#feat #decisao`
+**Fase:** 1 — MVP
+**Pedido:** usuário trouxe a planilha usada hoje ("copiar os modelos e melhorar o que for necessário").
+**Análise:** lida pelo XML e pelo VBA extraído (5 formulários). Regras resumidas em DOMAIN › Planilha antiga.
+Dados reais (nomes, clientes) e a senha de proteção do VBA **não** foram copiados para o repositório (público).
+**Decisões:** D6 = início/término por atividade, como na planilha; operador = usuário logado; Lei do Bem =
+projeto elegível **e** tarefa elegível, guardada no apontamento; edição permitida (a planilha só excluía).
+**O que mudou:**
+- `domain`: `task.py`, `time_entry.py` (horário, almoço, duração, sobreposição, data, mês), `workday.py` (jornada).
+- `storage`: migração `002_apontamentos.sql` (tasks com as 9 da planilha, `projects.rd_eligible`,
+  `time_entries` com RESTRICT), `tasks_repo`, `time_entries_repo`.
+- `services`: `tasks_service`, `time_entries_service` (permissão dono/responsável, auditoria, resumo do mês);
+  exclusão de usuário/projeto/tarefa com horas bloqueada.
+- `web`: telas Meus apontamentos (mês dia a dia, totais, lacunas), Novo/Corrigir/Excluir apontamento, Tarefas;
+  projeto ganhou "Conta para a Lei do Bem"; Início com atalhos para todos; `date_field`, `select_field` com
+  placeholder; `.gitignore` ignora `*.xlsm`/`*.xls`.
+**Verificado:** 102 testes ok (Python 3.12 do Cygwin com `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`; a `.venv` não foi
+criada nesta sessão); depois, na `.venv` do usuário: 103 testes + ruff ok.
+**Bug corrigido (teste manual do usuário):** "Primeiro acesso" dava 403 "Formulário enviado de outro site" →
+`Referrer-Policy: no-referrer` faz Edge/Chrome mandarem `Origin: null` no POST, e a trava de origem recusa
+`null` (os testes não pegavam: urllib não manda `Origin`) → política trocada para `same-origin` + teste
+`test_browser_origin_is_accepted` simulando o navegador. Afetava todos os formulários desde a fundação.
+**Pendências / próximos passos:**
+- Visão do responsável + fechamento do mês + exportação (Excel/PDF), com os filtros da planilha.
+- Importar projetos da planilha; feriados; jornada por pessoa; teste de carga com 20 usuários.
+
 ## 2026-11-23 — Teste exploratório do pacote + guia da rotina para a equipe  `#test #docs`
 **Fase:** 1 — MVP
 **O que foi feito:** pacote (`dist\ApontarHoras`) rodando isolado (porta 8766, dados temporários) e navegado como

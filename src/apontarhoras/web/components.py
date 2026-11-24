@@ -20,6 +20,7 @@ MESSAGES = {
     "excluido": "Excluído.",
     "senha_trocada": "Senha alterada.",
     "senha_redefinida": "Senha temporária definida. Passe-a para a pessoa: ela vai trocá-la no próximo acesso.",
+    "apontado": "Apontamento salvo.",
 }
 
 
@@ -51,9 +52,14 @@ def _nav(ctx: Ctx) -> str:
     )
     if user.must_change_password:
         return f'<div class="who"><span>{e(user.name)}</span>{logout}</div>'
-    items = [("/", "Início")]
+    items = [("/", "Início"), ("/apontamentos", "Meus apontamentos")]
     if user.is_admin:
-        items += [("/usuarios", "Colaboradores"), ("/projetos", "Projetos"), ("/auditoria", "Auditoria")]
+        items += [
+            ("/usuarios", "Colaboradores"),
+            ("/projetos", "Projetos"),
+            ("/tarefas", "Tarefas"),
+            ("/auditoria", "Auditoria"),
+        ]
     path = ctx.request.path
     links = ""
     for href, label in items:
@@ -154,12 +160,29 @@ def textarea_field(name: str, label: str, value: str = "", *, maxlength: int = 2
     )
 
 
-def select_field(name: str, label: str, options: list[tuple[str, str]], selected: str) -> str:
-    opts = "".join(
+def select_field(
+    name: str,
+    label: str,
+    options: list[tuple[str, str]],
+    selected: str,
+    *,
+    placeholder: str | None = None,
+    hint: str | None = None,
+) -> str:
+    """Com `placeholder`, a primeira opção fica vazia e o campo passa a ser obrigatório."""
+    opts = f'<option value="">{e(placeholder)}</option>' if placeholder else ""
+    opts += "".join(
         f'<option value="{e(value)}"{" selected" if value == selected else ""}>{e(text)}</option>'
         for value, text in options
     )
-    return f'<label>{e(label)}<select name="{name}">{opts}</select></label>'
+    required = " required" if placeholder else ""
+    return f'<label>{e(label)}<select name="{name}"{required}>{opts}</select>{_hint(hint)}</label>'
+
+
+def date_field(name: str, label: str, value: str, *, max_value: str | None = None) -> str:
+    """Seletor de data do navegador; o valor vai e volta em ISO (AAAA-MM-DD)."""
+    limit = f' max="{e(max_value)}"' if max_value else ""
+    return f'<label>{e(label)}<input type="date" name="{name}" value="{e(value)}" required{limit}></label>'
 
 
 def checkbox_field(name: str, label: str, checked: bool, *, hint: str | None = None) -> str:

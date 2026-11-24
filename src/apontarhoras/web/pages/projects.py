@@ -9,24 +9,26 @@ from apontarhoras.web.routing import Access, Ctx, Route
 
 CODE_HINT = "Identificação curta, única. Ex.: PD-2026-01."
 DESCRIPTION_HINT = "Opcional: objetivo do projeto (ajuda na documentação da Lei do Bem)."
+RD_HINT = "Desmarque para projetos que não são P&D (ex.: tarefas internas): nenhuma hora dele conta."
 
 
 def list_page(ctx: Ctx) -> Response:
     projects = projects_service.list_projects(ctx.conn, ctx.user, include_inactive=True)
     rows = "".join(
         f"<tr><td><strong>{e(p.code)}</strong></td><td>{e(p.name)}</td>"
+        f"<td>{'Sim' if p.rd_eligible else badge('Não', 'off')}</td>"
         f"<td>{badge('Ativo') if p.active else badge('Inativo', 'off')}</td>"
         f'<td class="actions-cell"><a href="/projetos/{p.id}/editar">Editar</a>'
         f'<a href="/projetos/{p.id}/excluir">Excluir</a></td></tr>'
         for p in projects
     )
     if not rows:
-        rows = '<tr><td colspan="4" class="muted">Nenhum projeto cadastrado.</td></tr>'
+        rows = '<tr><td colspan="5" class="muted">Nenhum projeto cadastrado.</td></tr>'
     body = (
         '<div class="toolbar"><span class="muted">Só projetos ativos aparecem para os colaboradores.</span>'
         '<a class="button primary" href="/projetos/novo">Novo projeto</a></div>'
-        '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Situação</th><th></th></tr>'
-        f"</thead><tbody>{rows}</tbody></table></div>"
+        '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Lei do Bem</th><th>Situação</th>'
+        f"<th></th></tr></thead><tbody>{rows}</tbody></table></div>"
     )
     return page(ctx, "Projetos", body)
 
@@ -41,6 +43,8 @@ def _fields(ctx: Ctx, project: Project | None) -> str:
         + textarea_field("descricao", "Descrição", f.get("descricao", project.description if project else ""),
                          hint=DESCRIPTION_HINT)
     )
+    rd_eligible = f.get("lei_do_bem") == "1" if posted else (project.rd_eligible if project else True)
+    fields += checkbox_field("lei_do_bem", "Conta para a Lei do Bem", rd_eligible, hint=RD_HINT)
     if project:
         active = f.get("ativo") == "1" if posted else project.active
         fields += checkbox_field("ativo", "Ativo", active, hint="Inativo some da lista dos colaboradores.")
@@ -60,7 +64,8 @@ def new_post(ctx: Ctx) -> Response:
     f = ctx.form
     try:
         projects_service.create_project(
-            ctx.conn, ctx.user, code=f.get("codigo", ""), name=f.get("nome", ""), description=f.get("descricao", "")
+            ctx.conn, ctx.user, code=f.get("codigo", ""), name=f.get("nome", ""), description=f.get("descricao", ""),
+            rd_eligible=f.get("lei_do_bem") == "1",
         )
     except AppError as exc:
         return _new_page(ctx, error=str(exc))
@@ -82,7 +87,7 @@ def edit_post(ctx: Ctx, project_id: str) -> Response:
     try:
         projects_service.update_project(
             ctx.conn, ctx.user, int(project_id), code=f.get("codigo", ""), name=f.get("nome", ""),
-            description=f.get("descricao", ""), active=f.get("ativo") == "1",
+            description=f.get("descricao", ""), active=f.get("ativo") == "1", rd_eligible=f.get("lei_do_bem") == "1",
         )
     except AppError as exc:
         return _edit_page(ctx, projects_service.get_project(ctx.conn, ctx.user, int(project_id)), error=str(exc))
