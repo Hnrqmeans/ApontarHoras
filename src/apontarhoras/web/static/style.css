@@ -59,6 +59,7 @@ footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 16
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
 .form { max-width: 520px; display: flex; flex-direction: column; gap: 14px; }
+.form p { margin: 0; }
 label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
 label.check { flex-direction: row; align-items: center; gap: 8px; font-weight: 400; }
 input[type=text], input[type=password], select, textarea {

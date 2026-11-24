@@ -18,6 +18,17 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-23 — Teste exploratório do pacote + guia da rotina para a equipe  `#test #docs`
+**Fase:** 1 — MVP
+**O que foi feito:** pacote (`dist\ApontarHoras`) rodando isolado (porta 8766, dados temporários) e navegado como
+responsável e colaboradores: 61/61 verificações (primeiro acesso, cadastros, troca obrigatória de senha, 403 do
+colaborador inclusive por POST direto, bloqueio 5× e desbloqueio, desativar derruba a sessão, exclusão em 2 cliques,
+auditoria completa e sem senhas, CSRF, Origin, envio > 1 MB, travessia de pasta, cookie inventado, 15 gravações
+simultâneas). Nenhum erro no log do servidor. Prints conferidos (tema claro e escuro).
+**Ajuste:** `style.css` — parágrafos dentro de formulários sem margem extra (confirmação de exclusão ficava espaçada).
+**Guia para a equipe:** documento "ApontarHoras — Como funciona a rotina" (claude.ai, fora do repositório) com ciclo
+do mês, passo a passo do colaborador e do responsável, segurança, situação e perguntas para a equipe decidir.
+
 ## 2026-11-23 — Fundação: login, papéis, cadastros, auditoria, pacote portátil (sem dependências)  `#feat #infra #decisao`
 **Fase:** 1 — MVP
 **Pedido:** "não gere dependências, o app deve abrir em uma máquina limpa"; depois subir na branch remota.
