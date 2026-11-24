@@ -23,6 +23,16 @@ def test_ini_and_command_line(tmp_path):
     assert settings.port == 7000
 
 
+def test_https_option_turns_on_secure_cookie(tmp_path):
+    ini = tmp_path / "ApontarHoras.ini"
+    ini.write_text("[servidor]\nhttps = sim\n", encoding="utf-8-sig")
+    settings, _ = load_settings(["--config", str(ini), "--dados", str(tmp_path)])
+    assert settings.secure_cookies
+    ini.write_text("[servidor]\nrede = sim\n", encoding="utf-8-sig")
+    settings, _ = load_settings(["--config", str(ini), "--dados", str(tmp_path)])
+    assert not settings.secure_cookies  # padrão: sem HTTPS
+
+
 def test_missing_ini_uses_defaults(tmp_path):
     settings, _ = load_settings(["--config", str(tmp_path / "nao-existe.ini"), "--dados", str(tmp_path)])
     assert settings.port == 8080

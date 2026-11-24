@@ -18,6 +18,16 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-24 — Segurança: HTTPS configurável e SEGURANCA.md completo  `#seguranca #fix`
+**Pedido:** "questões de segurança tudo explicada?"
+**Bug:** o SEGURANCA.md dizia que o cookie `Secure` "estava previsto", mas `Settings.secure_cookies` nunca era lido
+do `.ini` (sempre falso): com HTTPS, o cookie de sessão ainda podia ir por HTTP → nova opção `https = sim` no
+`ApontarHoras.ini` (`main.load_settings`), teste `test_https_option_turns_on_secure_cookie`.
+**SEGURANCA.md:** novas seções — "Alguém consegue alterar os dados de outra pessoa?" (tabela por quem tenta, com os
+testes que garantem), "Ataques pelo navegador e pela rede" (CSRF, XSS, clickjacking, SQL, fórmula no Excel, senha,
+tamanho, pasta estática), "Arquivos exportados", "Dados pessoais" e "Se Verificar integridade acusar alteração"
+(inclui o efeito de restaurar backup). Checklist da TI com `https = sim`, `Host` preservado e pasta para exportações.
+
 ## 2026-11-24 — Docs prontos para os próximos releases  `#docs`
 **Pedido:** "todos os documentos atualizados? pra ajudar nos próximos releases".
 **Corrigido (estava desatualizado):** CLAUDE.md ainda dizia "apontamento fechado não se edita" (contra D9) e

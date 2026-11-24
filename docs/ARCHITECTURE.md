@@ -115,7 +115,8 @@ Visão completa para o responsável e a TI: [SEGURANCA.md](SEGURANCA.md).
   (Não `no-referrer`: o navegador passaria a mandar `Origin: null` nos formulários e a trava de origem recusaria
   todos — bug encontrado no teste manual de 2026-11-24.)
 - Auditoria de login, bloqueio, cadastros e senhas (nunca grava a senha).
-- Servidor só na rede interna/VPN. HTTPS: ⏳ se a TI exigir (certificado da empresa; `Settings.secure_cookies`).
+- Servidor só na rede interna/VPN. HTTPS: por proxy da TI (certificado da empresa) com `https = sim` no `.ini`
+  (cookie `Secure`). Detalhes: [SEGURANCA.md](SEGURANCA.md).
 
 ## Servidor da empresa (checklist para a TI)
 - Sistema do servidor e permissão para o app iniciar sozinho (Agendador de Tarefas "ao iniciar" ou serviço).
