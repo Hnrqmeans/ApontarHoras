@@ -209,5 +209,13 @@ def form(
     )
 
 
+def single_admin_notice() -> str:
+    """Aviso quando só há um responsável ativo (Início e Colaboradores)."""
+    return (
+        '<div class="notice attention" role="status">Só há um responsável ativo. Cadastre um segundo responsável '
+        'para não perder o acesso. <a href="/usuarios/novo">Novo colaborador</a> (papel: Responsável).</div>'
+    )
+
+
 def badge(text: str, kind: str = "") -> str:
     return f'<span class="badge {kind}">{e(text)}</span>'

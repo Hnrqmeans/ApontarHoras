@@ -127,6 +127,40 @@ def reset_password(
         audit.record(conn, admin, "password_reset", "user", user_id, {"login": target.login}, now=now)
 
 
+def has_single_admin(conn: sqlite3.Connection, actor: User | None) -> bool:
+    """Só um responsável ativo: se ele esquecer a senha ou sair, ninguém mais administra pelo navegador."""
+    require_admin(actor)
+    return users_repo.count_active_admins(conn) == 1
+
+
+RECOVERY_ACTOR = "servidor (recuperação)"
+
+
+def recover_access(
+    conn: sqlite3.Connection, login: str, temporary_password: str, *, now: datetime | None = None
+) -> User:
+    """Recuperação pelo servidor (comando `apontarhoras.recuperar`), sem a interface web e sem usuário logado.
+
+    Não há `actor`: a autorização é ter acesso ao console e à pasta de dados do servidor (quem tem isso já pode
+    ler e alterar o arquivo do banco). Define senha temporária, desbloqueia, reativa, encerra as sessões e obriga a
+    troca no próximo acesso. Fica na auditoria como "Redefiniu a senha" feito por "servidor (recuperação)".
+    """
+    login = normalize_login(login)
+    with transaction(conn):
+        target = users_repo.get_by_login(conn, login)
+        if target is None:
+            raise NotFound(f"Não existe usuário com o login '{login}'.")
+        validate_password(temporary_password, target.login)
+        users_repo.set_password(conn, target.id, hash_password(temporary_password), must_change=True)
+        details = {"login": target.login, "recuperação pelo servidor": True}
+        if not target.active:
+            users_repo.update_profile(conn, target.id, name=target.name, role=target.role, active=True)
+            details["ativo"] = [False, True]
+        sessions_repo.delete_for_user(conn, target.id)
+        audit.record(conn, None, "password_reset", "user", target.id, details, now=now, actor_name=RECOVERY_ACTOR)
+        return users_repo.get(conn, target.id)
+
+
 def delete_user(conn: sqlite3.Connection, actor: User | None, user_id: int, *, now: datetime | None = None) -> None:
     admin = require_admin(actor)
     if user_id == admin.id:

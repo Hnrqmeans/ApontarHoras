@@ -15,6 +15,8 @@ LUNCH_START = 12 * 60
 LUNCH_END = 13 * 60
 LUNCH_BREAK_MINUTES = 60
 MAX_DESCRIPTION = 1000
+MIN_REASON = 3
+MAX_REASON = 500
 
 _DIGITS = re.compile(r"^\d+$")
 _MONTH = re.compile(r"^(\d{4})-(\d{2})$")
@@ -147,3 +149,18 @@ def parse_month(text: str | None, today: date) -> tuple[int, int]:
 def shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
     index = year * 12 + (month - 1) + delta
     return index // 12, index % 12 + 1
+
+
+def is_late_entry(work_date: date, created_local: date) -> bool:
+    """Lançado depois do fim do mês da data trabalhada (data local do lançamento). O mês não trava (D9): só sinaliza."""
+    return (created_local.year, created_local.month) > (work_date.year, work_date.month)
+
+
+def validate_correction_reason(reason: str) -> str:
+    """Motivo de quem corrige/exclui o apontamento de outra pessoa (vai para a auditoria). Devolve o texto limpo."""
+    text = reason.replace("\r", "").strip()
+    if len(text) < MIN_REASON:
+        raise ValidationError("Informe o motivo da correção (quem altera o apontamento de outra pessoa).")
+    if len(text) > MAX_REASON:
+        raise ValidationError(f"O motivo deve ter no máximo {MAX_REASON} caracteres.")
+    return text

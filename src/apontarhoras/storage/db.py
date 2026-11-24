@@ -24,12 +24,16 @@ class Database:
         return conn
 
     def initialize(self) -> None:
-        """Cria a pasta/arquivo se preciso e aplica as migrações pendentes."""
+        """Cria a pasta/arquivo se preciso, aplica as migrações pendentes e sela a auditoria antiga (sem selo)."""
+        # import aqui: audit_repo usa este módulo (transaction, datas)
+        from apontarhoras.storage.audit_repo import seal_pending
+
         self.path.parent.mkdir(parents=True, exist_ok=True)
         conn = self.connect()
         try:
             conn.execute("PRAGMA journal_mode = WAL")
             migrate(conn)
+            seal_pending(conn)
         finally:
             conn.close()
 
