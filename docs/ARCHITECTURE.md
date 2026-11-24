@@ -1,79 +1,103 @@
 # ARCHITECTURE — Estrutura, camadas e integrações
 
 ## Decisões técnicas
-| Data       | Decisão                         | Motivo                                                                  |
-|------------|---------------------------------|-------------------------------------------------------------------------|
-| 2026-11-23 | Python 3.12 + NiceGUI (proposta)| Mesma stack do Pagodinho: UI só em Python, roda como janela **ou** servidor web. |
-| 2026-11-23 | Duração em minutos (int)        | Evita erro de arredondamento de horas em `float`.                       |
-| 2026-11-23 | Pacote Python embeddable (proposta) | Técnica já validada no Pagodinho (PyInstaller é bloqueado pelo Windows). |
-| 2026-11-23 | **Servidor da empresa (opção A)** + VPN para remotos | A empresa já tem servidor; uma pessoa exporta os dados de todos sem ninguém enviar arquivo. |
+| Data       | Decisão                                   | Motivo                                                                 |
+|------------|-------------------------------------------|------------------------------------------------------------------------|
+| 2026-11-23 | **Servidor da empresa** + VPN p/ remotos  | Empresa já tem servidor; uma pessoa exporta os dados de todos sem ninguém enviar arquivo. |
+| 2026-11-23 | **Só biblioteca padrão** (zero dependências) | Pedido do usuário: abrir em máquina limpa. Sem NiceGUI/Flask/openpyxl. |
+| 2026-11-23 | `http.server` (ThreadingHTTPServer) + HTML gerado no servidor | Interface pelo navegador; nada a instalar nos PCs da equipe. |
+| 2026-11-23 | Sem JavaScript; CSP `script-src 'none'`   | Menos superfície de ataque (XSS); páginas simples bastam.              |
+| 2026-11-23 | SQLite em modo WAL, 1 conexão por requisição, `BEGIN IMMEDIATE` | Dezenas de usuários sem servidor de banco; escrita concorrente espera em vez de falhar. |
+| 2026-11-23 | Senha com `hashlib.scrypt`; sessão = token aleatório, banco guarda só o SHA-256 | Quem ler o arquivo do banco não obtém senhas nem sessões. |
+| 2026-11-23 | Duração em minutos (int)                  | Evita erro de arredondamento de horas em `float`.                      |
+| 2026-11-23 | Pacote = Python 3.12 embeddable oficial; `python.exe` renomeado `ApontarHoras.exe` | Assinado pela PSF (PyInstaller é bloqueado pelo Windows); console mostra o endereço. |
+| 2026-11-23 | Configuração em `ApontarHoras.ini` ao lado do .exe | O Python embutido recusa opções `--` desconhecidas na linha de comando. |
 
-## Servidor da empresa (checklist para a TI)
-- Sistema do servidor (Windows Server? Linux?) e permissão para rodar o app como **serviço** (sobe sozinho no boot).
-- **Uma porta interna** liberada no firewall (ex.: 8080), acessível pela rede e pela VPN; **não** exposta à internet.
-- Nome fixo na rede (ex.: `apontarhoras.<dominio-interno>`) ou IP fixo.
-- Pasta para o banco + **backup diário** (rotina da TI ou do próprio app).
-- HTTPS interno com certificado da empresa: desejável (a VPN já cifra o acesso remoto; na rede local, depende da
-  política da TI).
-- Requisitos: leves — Python embarcado no pacote, banco SQLite (arquivo único; dezenas de usuários sem problema).
-
-## Opções de arquitetura (avaliadas em 2026-11-23 — escolhida a A)
-O ponto central do app é que **vários usuários** gravam e um admin enxerga tudo. Isso muda a arquitetura em relação
-ao Pagodinho (um usuário, SQLite local).
-
-| Opção | Como funciona | Prós | Contras |
-|-------|---------------|------|---------|
-| **A. Servidor na rede da empresa** (recomendada se houver um PC/servidor sempre ligado) | Um único app NiceGUI roda em modo servidor num PC da empresa, com banco (SQLite no início, PostgreSQL se crescer). Cada pessoa abre o **executável** (janela que aponta para o servidor) ou o navegador. | Tempo real; uma base só; atualizar = trocar só o servidor; permissões de verdade. | Precisa de uma máquina ligada e de liberar porta na rede (TI). |
-| **B. Nuvem** | Igual à A, mas o servidor fica hospedado (VPS/Azure) com HTTPS. | Funciona fora da empresa/home office. | Custo mensal; segurança/LGPD mais exigentes; domínio e certificado. |
-| **C. Pasta compartilhada** | Cada pessoa tem um app local que grava/exporta um arquivo seu numa pasta de rede/OneDrive; o app do admin lê e consolida. | Sem servidor; instalação simples. | Sem tempo real; conflitos de sincronização; permissão depende da pasta; **SQLite em pasta de rede corrompe** se vários escreverem no mesmo arquivo. |
-
-Recomendação: **A**, desenhada de forma que virar **B** seja só mudar onde o servidor roda (o código é o mesmo).
-O executável do colaborador vira um "cliente fino": janela nativa (pywebview) apontando para o endereço do servidor,
-com o endereço configurável.
+## Como roda
+```
+ PCs da equipe (navegador)  ──rede/VPN──►  Servidor da empresa: ApontarHoras.exe  ──►  apontarhoras.db (pasta com backup)
+                                            (porta do .ini, ex.: 8080)
+```
+- Dev: `.venv\Scripts\python.exe -m apontarhoras` (abre http://localhost:8080; dados em `%LOCALAPPDATA%\ApontarHoras`).
+- Servidor: `ApontarHoras.ini` com `rede = sim`, `abrir_navegador = nao`, `dados = <pasta com backup>`.
+- Primeiro acesso (banco vazio): a tela `/primeiro-acesso` cria o responsável. Depois disso, some.
 
 ## Camadas (dependência só para baixo)
 ```
-ui  ──►  services  ──►  storage
+web  ──►  services  ──►  storage
   \          │             │
-   └────►  domain  ◄───────┘        integrations ──► services / domain
+   └────►  domain  ◄───────┘        auth (senha/token) ◄── services
 ```
-- **domain**: modelos e regras puras (apontamento, período, totais, estados). Não faz I/O.
-- **storage**: repositórios; único lugar com SQL. Migrações numeradas.
-- **services**: casos de uso + **checagem de permissão** + auditoria, em transação.
-- **reports**: consultas agregadas e dados para gráficos/exportação.
-- **ui**: telas NiceGUI; só chama services/reports. Esconder botão não é segurança.
-- **auth**: login, sessão, hash de senha.
-- **integrations**: Excel, e-mail, AD/SSO, ERP — plugáveis.
+- **domain**: modelos e regras puras (validações, duração, bloqueio por tentativas). Não faz I/O.
+- **storage**: SQLite; único lugar com SQL. Migrações numeradas em `storage/migrations/NNN_*.sql` (`PRAGMA user_version`).
+- **services**: casos de uso + **checagem de permissão** + auditoria, na mesma transação.
+- **auth**: hash de senha (scrypt) e tokens (sessão, anti-CSRF).
+- **web**: servidor, rotas e telas. Primeira barreira (login/papel/CSRF/origem) em `web/app.py`; os services
+  conferem de novo.
 
-## Mapa de módulos (✅ existe · ⏳ planejado — atualizar conforme for criado)
+## Mapa de módulos (✅ existe · ⏳ planejado)
 ```
 ApontarHoras/
-├── CLAUDE.md                 ✅ guia de início de rotina da IA
-├── README.md                 ✅
-├── docs/                     ✅ ROADMAP, DEVLOG, ARCHITECTURE, DOMAIN, DESENVOLVEDOR
-├── pyproject.toml            ⏳
-├── scripts/build.ps1         ⏳ pacote do cliente e do servidor
+├── CLAUDE.md, README.md, docs/      ✅
+├── pyproject.toml                   ✅ dependencies = [] ; extra dev = pytest + ruff
+├── .github/workflows/ci.yml         ✅ lint + testes (Windows) em push/PR para dev e main
+├── scripts/
+│   ├── build.ps1                    ✅ lint+testes → Python embeddable (SHA-256 + assinatura) → dist\ApontarHoras + zip
+│   └── portable/
+│       ├── sitecustomize.py         ✅ ApontarHoras.exe sem argumentos → main(["--config", ApontarHoras.ini])
+│       └── ApontarHoras.ini         ✅ configuração padrão (rede, porta, dados, abrir_navegador)
 ├── src/apontarhoras/
-│   ├── main.py               ⏳ ponto de entrada (modo servidor / modo cliente)
-│   ├── config.py             ⏳ endereço do servidor, caminho do banco, porta
+│   ├── __init__.py                  ✅ __version__, APP_NAME
+│   ├── __main__.py / main.py        ✅ load_settings (padrão ← .ini ← linha de comando), sobe o servidor
+│   ├── config.py                    ✅ Settings, pasta de dados padrão (APONTARHORAS_DADOS / %LOCALAPPDATA%)
 │   ├── domain/
-│   │   ├── duration.py       ⏳ minutos ⇄ "HH:MM", parse de entrada
-│   │   ├── user.py           ⏳ User, Role, permissões (can_*)
-│   │   ├── project.py        ⏳ Client, Project, Activity
-│   │   ├── time_entry.py     ⏳ TimeEntry + validações (sobreposição, limite do dia)
-│   │   └── period.py         ⏳ Period (semana/mês), PeriodStatus e transições
-│   ├── storage/              ⏳ db.py, migrations/, *_repo.py
-│   ├── auth/                 ⏳ hash de senha, sessão
-│   ├── services/             ⏳ users, projects, entries, approval, audit
-│   ├── reports/              ⏳ horas por pessoa/projeto/período, exportação
-│   ├── integrations/         ⏳ excel/, email/
-│   └── ui/                   ⏳ login, minha semana, aprovação, cadastros, relatórios
-└── tests/                    ⏳ domain, services (inclui permissões), UI smoke
+│   │   ├── errors.py                ✅ AppError → ValidationError, PermissionDenied, NotFound, AuthError
+│   │   ├── duration.py              ✅ minutos ⇄ "H:MM"; parse de "8", "8:30", "8h30", "8,5"
+│   │   ├── user.py                  ✅ User, Role (admin=Responsável, colaborador), login/senha, bloqueio
+│   │   ├── project.py               ✅ Project + validações (código único em maiúsculas)
+│   │   ├── audit.py                 ✅ AuditEntry, rótulos, changes() (só o que mudou)
+│   │   └── time_entry.py, period.py ⏳ apontamento e fechamento do mês (após o exemplo do usuário)
+│   ├── auth/passwords.py, tokens.py ✅ scrypt; token de sessão; csrf_for
+│   ├── storage/
+│   │   ├── db.py                    ✅ Database, transaction, migrate, datas UTC ISO
+│   │   ├── migrations/001_init.sql  ✅ users, sessions, projects, audit_log
+│   │   └── users_repo, sessions_repo, projects_repo, audit_repo ✅
+│   ├── services/
+│   │   ├── common.py                ✅ utcnow, require_user, require_admin
+│   │   ├── auth_service.py          ✅ primeiro acesso, login (bloqueio 5× / 15 min), sessão 12 h, trocar senha
+│   │   ├── users_service.py         ✅ CRUD + redefinir senha; sempre ≥ 1 responsável; não se rebaixa/exclui
+│   │   ├── projects_service.py      ✅ CRUD; colaborador vê só ativos
+│   │   └── audit.py                 ✅ record (na transação), list_recent (só responsável)
+│   └── web/
+│       ├── server.py                ✅ AppServer (ThreadingHTTPServer), limite de 1 MB por envio
+│       ├── app.py                   ✅ despacho, travas, cabeçalhos de segurança, arquivos estáticos
+│       ├── http.py, routing.py      ✅ Request/Response, Route/Access/Ctx
+│       ├── components.py            ✅ layout, campos, form (com CSRF), e() (escape), mensagens
+│       ├── static/style.css         ✅ tema claro/escuro automático
+│       └── pages/                   ✅ auth, home, users, projects, audit
+└── tests/                           ✅ domain, storage, services (permissões), main (.ini), web (ponta a ponta)
 ```
 
-## Segurança (mínimo desde a Fase 1)
-- Senhas com hash (scrypt/argon2) + bloqueio após N tentativas.
-- Primeiro acesso: admin inicial com senha trocada obrigatoriamente.
-- Toda rota/ação passa pelo `services` com o usuário da sessão.
-- HTTPS obrigatório se a opção B (nuvem) for escolhida.
-- Dados pessoais (nome, horas) → LGPD: acesso só por papel; exportação registrada na auditoria.
+## Segurança (implementado na fundação)
+- Senha: scrypt com sal; mínimo 8 caracteres; bloqueio de 15 min após 5 erros seguidos; mesma mensagem para
+  "usuário não existe" e "senha errada" (com o mesmo tempo de resposta).
+- Senha temporária (criada/redefinida pelo responsável) obriga a troca no próximo acesso.
+- Sessão: cookie `HttpOnly; SameSite=Strict`, 12 h; trocar senha/desativar/redefinir encerra as outras sessões.
+- Formulários: token anti-CSRF + recusa de POST com `Origin` de outro site.
+- Cabeçalhos: CSP restritiva, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, `Cache-Control: no-store`.
+- Auditoria de login, bloqueio, cadastros e senhas (nunca grava a senha).
+- Servidor só na rede interna/VPN. HTTPS: ⏳ se a TI exigir (certificado da empresa; `Settings.secure_cookies`).
+
+## Servidor da empresa (checklist para a TI)
+- Sistema do servidor e permissão para o app iniciar sozinho (Agendador de Tarefas "ao iniciar" ou serviço).
+- **Uma porta interna** liberada no firewall (ex.: 8080), acessível pela rede e pela VPN; **não** exposta à internet.
+- Nome fixo na rede (ex.: `apontarhoras.<dominio-interno>`) ou IP fixo.
+- Pasta para o banco + **backup diário** (copiar `apontarhoras.db` com o app parado, ou backup do volume).
+- HTTPS interno com certificado da empresa: desejável conforme a política da TI.
+
+## Opções avaliadas em 2026-11-23 (escolhida a A)
+| Opção | Resumo | Por que não (B, C) |
+|-------|--------|--------------------|
+| **A. Servidor na rede da empresa** | Um app em modo servidor; equipe pelo navegador/VPN. | — |
+| B. Nuvem | Igual à A, hospedado com HTTPS. | Custo e exigências de segurança; sem necessidade agora. |
+| C. Pasta compartilhada | Arquivo por pessoa, responsável consolida. | Sem tempo real; conflitos; SQLite em pasta de rede corrompe. |

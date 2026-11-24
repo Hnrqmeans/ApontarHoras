@@ -50,12 +50,30 @@ As tabelas abaixo com `gestor`, `enviado`, `devolvido` e `aprovado` são a vers�
 | Cadastros (usuários, projetos, …)     | —           | — (a confirmar)   | ✔     |
 | Relatórios/exportação                 | só os seus  | da equipe         | todos |
 
+### Usuários e acesso (implementado 2026-11-23)
+- O **primeiro acesso** (banco vazio) cria o responsável; depois a tela some.
+- O responsável cria colaboradores com **senha temporária**; a pessoa é obrigada a trocá-la ao entrar.
+- Login sem diferença de maiúsculas; 3–32 caracteres (`a-z 0-9 . _ -`). Senha: 8–128 caracteres, diferente do login.
+- **5 senhas erradas seguidas → bloqueio de 15 min** (o responsável desbloqueia ao redefinir a senha).
+- Sessão dura 12 h. Trocar a senha encerra as outras sessões; desativar/redefinir encerra todas.
+- Sempre existe **pelo menos um responsável ativo**; ninguém tira o próprio acesso de responsável, se desativa ou
+  se exclui.
+- Colaborador desativado não entra, mas o histórico dele continua.
+
+### Projetos (implementado 2026-11-23)
+- Código único (1–20 caracteres, guardado em maiúsculas), nome (2–120), descrição opcional (até 2000).
+- Colaborador vê **só projetos ativos** (onde pode apontar); o responsável vê todos.
+
 ## Exclusão de dados
-| Dado        | Exclusão                                                              |
-|-------------|-----------------------------------------------------------------------|
-| Apontamento | Exclusão com confirmação (só em período aberto/devolvido); auditada.  |
-| Usuário, projeto, atividade, cliente | **Desativar** se já tiver apontamentos; excluir só se não tiver. |
+Sempre em 2 cliques: link "Excluir" → página com "Confirmar exclusão". Auditada.
+| Dado        | Exclusão                                                              | Teste |
+|-------------|-----------------------------------------------------------------------|-------|
+| Usuário     | Excluir (não a si mesmo; mantém ≥ 1 responsável). ⏳ Com horas apontadas: só desativar. | `test_delete_user`, `test_web` |
+| Projeto     | Excluir. ⏳ Com horas apontadas: só desativar.                         | `test_projects_crud_and_visibility`, `test_admin_flow_users_and_projects` |
+| Apontamento | ⏳ Exclusão com confirmação, só em mês aberto.                         | — |
+| Auditoria   | **Não se exclui** (prova para a Lei do Bem).                          | — |
 
 ## Auditoria
-Toda criação/edição/exclusão de apontamento, mudança de estado de período e cadastro registra: usuário, data-hora,
-ação, antes/depois. Somente admin consulta.
+Toda criação/edição/exclusão de cadastro, login, senha errada, bloqueio e troca/redefinição de senha registra:
+quem, quando (UTC), ação, item e detalhes (na edição, só o que mudou: antes → depois). **Nunca** grava senha.
+Somente o responsável consulta (tela Auditoria, últimos 200). ⏳ Apontamentos e fechamento do mês.
