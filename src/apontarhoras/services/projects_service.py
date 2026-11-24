@@ -16,7 +16,7 @@ from apontarhoras.domain.project import (
 from apontarhoras.domain.user import User
 from apontarhoras.services import audit
 from apontarhoras.services.common import require_admin, require_user, utcnow
-from apontarhoras.storage import projects_repo
+from apontarhoras.storage import projects_repo, time_entries_repo
 from apontarhoras.storage.db import transaction
 
 
@@ -26,6 +26,7 @@ def _snapshot(project: Project) -> dict:
         "nome": project.name,
         "descrição": project.description,
         "ativo": project.active,
+        "lei do bem": project.rd_eligible,
     }
 
 
@@ -63,6 +64,7 @@ def create_project(
     code: str,
     name: str,
     description: str = "",
+    rd_eligible: bool = True,
     now: datetime | None = None,
 ) -> Project:
     admin = require_admin(actor)
@@ -70,7 +72,9 @@ def create_project(
     with transaction(conn):
         if projects_repo.code_taken(conn, code):
             raise ValidationError(f"Já existe um projeto com o código '{code}'.")
-        project_id = projects_repo.insert(conn, code=code, name=name, description=description, now=now or utcnow())
+        project_id = projects_repo.insert(
+            conn, code=code, name=name, description=description, rd_eligible=rd_eligible, now=now or utcnow()
+        )
         project = projects_repo.get(conn, project_id)
         audit.record(conn, admin, "create", "project", project_id, _snapshot(project), now=now)
     return project
@@ -85,6 +89,7 @@ def update_project(
     name: str,
     description: str,
     active: bool,
+    rd_eligible: bool = True,
     now: datetime | None = None,
 ) -> Project:
     admin = require_admin(actor)
@@ -93,7 +98,9 @@ def update_project(
         before = _get(conn, project_id)
         if projects_repo.code_taken(conn, code, exclude_id=project_id):
             raise ValidationError(f"Já existe um projeto com o código '{code}'.")
-        projects_repo.update(conn, project_id, code=code, name=name, description=description, active=active)
+        projects_repo.update(
+            conn, project_id, code=code, name=name, description=description, active=active, rd_eligible=rd_eligible
+        )
         after = projects_repo.get(conn, project_id)
         diff = changes(_snapshot(before), _snapshot(after))
         if diff:
@@ -107,6 +114,7 @@ def delete_project(
     admin = require_admin(actor)
     with transaction(conn):
         project = _get(conn, project_id)
-        # Fase 1 (apontamentos): projeto com horas apontadas só pode ser desativado.
+        if time_entries_repo.count_by(conn, "project_id", project_id):
+            raise ValidationError("Este projeto tem horas apontadas: desative-o em vez de excluir.")
         projects_repo.delete(conn, project_id)
         audit.record(conn, admin, "delete", "project", project_id, _snapshot(project), now=now)

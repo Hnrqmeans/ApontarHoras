@@ -56,17 +56,23 @@ ApontarHoras/
 │   │   ├── user.py                  ✅ User, Role (admin=Responsável, colaborador), login/senha, bloqueio
 │   │   ├── project.py               ✅ Project + validações (código único em maiúsculas)
 │   │   ├── audit.py                 ✅ AuditEntry, rótulos, changes() (só o que mudou)
-│   │   └── time_entry.py, period.py ⏳ apontamento e fechamento do mês (após o exemplo do usuário)
+│   │   ├── task.py                  ✅ Task (tipo de atividade, Lei do Bem)
+│   │   ├── time_entry.py            ✅ horário (7, 730, 7:30), almoço, duração, sobreposição, data, mês
+│   │   ├── workday.py               ✅ jornada seg–qui 8h27 / sex 7h42; OK / Pendência / Verificar
+│   │   └── period.py                ⏳ fechamento do mês
 │   ├── auth/passwords.py, tokens.py ✅ scrypt; token de sessão; csrf_for
 │   ├── storage/
 │   │   ├── db.py                    ✅ Database, transaction, migrate, datas UTC ISO
 │   │   ├── migrations/001_init.sql  ✅ users, sessions, projects, audit_log
-│   │   └── users_repo, sessions_repo, projects_repo, audit_repo ✅
+│   │   ├── migrations/002_apontamentos.sql ✅ tasks (+9 padrão), projects.rd_eligible, time_entries
+│   │   └── users_repo, sessions_repo, projects_repo, tasks_repo, time_entries_repo, audit_repo ✅
 │   ├── services/
 │   │   ├── common.py                ✅ utcnow, require_user, require_admin
 │   │   ├── auth_service.py          ✅ primeiro acesso, login (bloqueio 5× / 15 min), sessão 12 h, trocar senha
 │   │   ├── users_service.py         ✅ CRUD + redefinir senha; sempre ≥ 1 responsável; não se rebaixa/exclui
-│   │   ├── projects_service.py      ✅ CRUD; colaborador vê só ativos
+│   │   ├── projects_service.py      ✅ CRUD; colaborador vê só ativos; com horas: só desativar
+│   │   ├── tasks_service.py         ✅ CRUD de tarefas (responsável)
+│   │   ├── time_entries_service.py  ✅ apontar/corrigir/excluir (dono ou responsável), resumo do mês
 │   │   └── audit.py                 ✅ record (na transação), list_recent (só responsável)
 │   └── web/
 │       ├── server.py                ✅ AppServer (ThreadingHTTPServer), limite de 1 MB por envio
@@ -74,7 +80,7 @@ ApontarHoras/
 │       ├── http.py, routing.py      ✅ Request/Response, Route/Access/Ctx
 │       ├── components.py            ✅ layout, campos, form (com CSRF), e() (escape), mensagens
 │       ├── static/style.css         ✅ tema claro/escuro automático
-│       └── pages/                   ✅ auth, home, users, projects, audit
+│       └── pages/                   ✅ auth, home, entries (apontamentos), users, projects, tasks, audit
 └── tests/                           ✅ domain, storage, services (permissões), main (.ini), web (ponta a ponta)
 ```
 
@@ -84,7 +90,9 @@ ApontarHoras/
 - Senha temporária (criada/redefinida pelo responsável) obriga a troca no próximo acesso.
 - Sessão: cookie `HttpOnly; SameSite=Strict`, 12 h; trocar senha/desativar/redefinir encerra as outras sessões.
 - Formulários: token anti-CSRF + recusa de POST com `Origin` de outro site.
-- Cabeçalhos: CSP restritiva, `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, `Cache-Control: no-store`.
+- Cabeçalhos: CSP restritiva, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: same-origin`, `Cache-Control: no-store`.
+  (Não `no-referrer`: o navegador passaria a mandar `Origin: null` nos formulários e a trava de origem recusaria
+  todos — bug encontrado no teste manual de 2026-11-24.)
 - Auditoria de login, bloqueio, cadastros e senhas (nunca grava a senha).
 - Servidor só na rede interna/VPN. HTTPS: ⏳ se a TI exigir (certificado da empresa; `Settings.secure_cookies`).
 

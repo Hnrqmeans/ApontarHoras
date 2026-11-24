@@ -18,7 +18,7 @@ from apontarhoras.domain.user import (
 )
 from apontarhoras.services import audit
 from apontarhoras.services.common import require_admin, utcnow
-from apontarhoras.storage import sessions_repo, users_repo
+from apontarhoras.storage import sessions_repo, time_entries_repo, users_repo
 from apontarhoras.storage.db import transaction
 
 
@@ -134,6 +134,7 @@ def delete_user(conn: sqlite3.Connection, actor: User | None, user_id: int, *, n
     with transaction(conn):
         target = _get(conn, user_id)
         _ensure_admin_remains(conn, target, still_admin=False)
-        # Fase 1 (apontamentos): usuário com horas apontadas só pode ser desativado.
+        if time_entries_repo.count_by(conn, "user_id", user_id):
+            raise ValidationError("Este colaborador tem horas apontadas: desative-o em vez de excluir.")
         users_repo.delete(conn, user_id)
         audit.record(conn, admin, "delete", "user", user_id, _snapshot(target), now=now)

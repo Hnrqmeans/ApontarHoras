@@ -31,6 +31,8 @@ exemplos/
 exportacoes/
 *.pdf
 *.xlsx
+*.xlsm
+*.xls
 *.csv
 !tests/fixtures/**
 

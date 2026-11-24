@@ -14,12 +14,20 @@ from apontarhoras.services import auth_service
 from apontarhoras.storage.db import Database
 from apontarhoras.web.components import SESSION_COOKIE, clear_session_cookie, error_page
 from apontarhoras.web.http import Request, Response, redirect
-from apontarhoras.web.pages import audit, auth, home, projects, users
+from apontarhoras.web.pages import audit, auth, entries, home, projects, tasks, users
 from apontarhoras.web.routing import Access, Ctx, Route
 
 logger = logging.getLogger(__name__)
 
-ALL_ROUTES: list[Route] = [*auth.ROUTES, *home.ROUTES, *users.ROUTES, *projects.ROUTES, *audit.ROUTES]
+ALL_ROUTES: list[Route] = [
+    *auth.ROUTES,
+    *home.ROUTES,
+    *entries.ROUTES,
+    *users.ROUTES,
+    *projects.ROUTES,
+    *tasks.ROUTES,
+    *audit.ROUTES,
+]
 
 _STATIC_NAME = re.compile(r"^[a-z0-9_-]+\.(css|svg|png|ico)$")
 _STATIC_TYPES = {"css": "text/css; charset=utf-8", "svg": "image/svg+xml", "png": "image/png", "ico": "image/x-icon"}
@@ -30,7 +38,8 @@ SECURITY_HEADERS = [
      "frame-ancestors 'none'"),
     ("X-Content-Type-Options", "nosniff"),
     ("X-Frame-Options", "DENY"),
-    ("Referrer-Policy", "no-referrer"),
+    # Não use "no-referrer": com ela o navegador manda `Origin: null` no POST e a trava de origem recusa tudo.
+    ("Referrer-Policy", "same-origin"),
 ]
 
 

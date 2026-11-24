@@ -159,6 +159,21 @@ def test_post_from_other_site_is_rejected(server):
     assert status == 403
 
 
+def test_browser_origin_is_accepted(server):
+    """Navegador de verdade manda `Origin` em todo POST; a política de referrer não pode virar `Origin: null`."""
+    browser = Browser(server)
+    _, _, _, headers = browser.get("/primeiro-acesso")
+    assert headers["Referrer-Policy"] != "no-referrer"
+    status, path, _, _ = browser.post(
+        "/primeiro-acesso",
+        {"nome": "Ana Responsável", "login": "ana", "senha": ADMIN_PASSWORD, "confirmacao": ADMIN_PASSWORD},
+        headers={"Origin": server},
+    )
+    assert (status, path) == (200, "/")
+    status, _, _, _ = browser.post("/sair", {}, headers={"Origin": "null"})
+    assert status == 403  # origem opaca continua recusada
+
+
 def test_logout(server):
     admin = _setup_admin(server)
     admin.get("/")
@@ -174,3 +189,37 @@ def test_static_and_not_found(server):
     assert status == 200 and "--primary" in body
     status, _, _, _ = browser.get("/static/../app.py")
     assert status == 404
+
+
+def test_collaborator_records_hours(server):
+    admin = _setup_admin(server)
+    admin.get("/projetos/novo")
+    admin.post("/projetos/novo", {"codigo": "pd-01", "nome": "Sensor novo", "descricao": "", "lei_do_bem": "1"})
+    admin.get("/usuarios/novo")
+    admin.post("/usuarios/novo", {"nome": "Bruno Colaborador", "login": "bruno", "papel": "colaborador",
+                                  "senha": "temporaria-123"})
+    bruno = Browser(server)
+    bruno.get("/entrar")
+    bruno.post("/entrar", {"login": "bruno", "senha": "temporaria-123"})
+    bruno.post("/trocar-senha", {"atual": "temporaria-123", "nova": "senha-do-bruno", "confirmacao": "senha-do-bruno"})
+    _, _, form_page, _ = bruno.get("/apontamentos/novo")
+    project_id = re.search(r'<option value="(\d+)">PD-01', form_page).group(1)
+    task_id = re.search(r'<option value="(\d+)">Desenvolvimento', form_page).group(1)
+    today = __import__("datetime").date.today().isoformat()
+    fields = {"data": today, "projeto": project_id, "tarefa": task_id, "inicio": "7", "termino": "1630",
+              "almoco": "", "descricao": "Calibração do <sensor>"}
+    # passa pelo almoço sem responder: volta com o erro e mantém o que foi digitado
+    _, path, body, _ = bruno.post("/apontamentos/novo", fields)
+    assert path == "/apontamentos/novo" and "horário de almoço" in body and "1630" in body
+    _, path, body, _ = bruno.post("/apontamentos/novo", {**fields, "almoco": "descontar"})
+    assert path == "/apontamentos"
+    assert "Apontamento salvo" in body and "8:30" in body
+    assert "Calibração do &lt;sensor&gt;" in body
+    # colaborador não acessa o cadastro de tarefas; outra pessoa não vê o apontamento dele
+    status, _, _, _ = bruno.get("/tarefas")
+    assert status == 403
+    entry_id = re.search(r"/apontamentos/(\d+)/editar", body).group(1)
+    _, _, mine, _ = admin.get("/apontamentos")
+    assert "Calibração" not in mine
+    status, _, _, _ = admin.get(f"/apontamentos/{entry_id}/editar")  # responsável pode corrigir
+    assert status == 200

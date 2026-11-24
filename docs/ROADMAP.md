@@ -9,11 +9,14 @@
 - **Escopo definido (2026-11-23):** apontamento de horas para a **Lei do Bem**. Colaborador aponta horas nos
   projetos; no fim do mês um **responsável** acessa, confere e exporta. **Nada complexo por enquanto** (sem fluxo
   de aprovação, sem gestores, sem cronômetro).
-- **Aguardando:** exemplo do usuário de como é o apontamento hoje (prometido para 2026-11-24) → ajustar DOMAIN.
+- **Apontamento pronto (2026-11-24, branch `feature/apontamento`):** modelo tirado da planilha antiga (DOMAIN ›
+  Planilha antiga): tarefas com Lei do Bem, início/término com almoço, sem sobreposição, "Meus apontamentos" com
+  lacunas contra a jornada. 102 testes ok. Exclusão com horas bloqueada (só desativar).
 - **Arquitetura (D1, 2026-11-23):** servidor da empresa; remotos pela VPN. Usuário vai levar o checklist à TI.
-- **Próximo:** com o exemplo → apontamento (tela do colaborador), fechar o mês, exportar Excel/PDF.
-- **Bloqueios:** exemplo do usuário.
-- **Última atualização:** 2026-11-23
+- **Próximo:** visão do responsável (horas de todos por pessoa/projeto/tarefa, filtros da planilha), **fechar o
+  mês**, exportar Excel/PDF; importar a lista de projetos da planilha; teste de carga (20 pessoas).
+- **Bloqueios:** nenhum.
+- **Última atualização:** 2026-11-24
 
 > IA: leia só esta seção no início da rotina. O restante é consulta sob demanda.
 
@@ -27,7 +30,7 @@
 | D3 | Timesheet ou ponto eletrônico?                                   | ✅ **Timesheet de projetos para a Lei do Bem** (não é controle de jornada). |
 | D4 | Login                                                            | Simples (usuário/senha) — confirmar após D1. |
 | D5 | Papéis                                                           | ✅ **colaborador** + **responsável** (admin). Gestor/aprovação: backlog. |
-| D6 | Forma de apontar                                                 | Aguardando o exemplo do usuário. |
+| D6 | Forma de apontar                                                 | ✅ Como a planilha (2026-11-24): início/término por atividade, tarefa define a Lei do Bem. |
 | D7 | Executável ou navegador para o colaborador?                      | ✅ Navegador (o .exe roda só no servidor). |
 | D8 | Dependências                                                     | ✅ **Nenhuma** no app (2026-11-23): só biblioteca padrão; abre em máquina limpa. |
 
@@ -41,9 +44,10 @@
 - [x] Cadastros (responsável): colaboradores (redefinir senha, desativar, excluir), projetos de P&D — 2026-11-23
 - [x] Auditoria (tela só do responsável) — 2026-11-23
 - [x] Pacote portátil Windows (`ApontarHoras.exe` + `ApontarHoras.ini`), validado isolado — 2026-11-23
-- [ ] Colaborador: apontar horas (data, projeto, horas, descrição da atividade), ver/editar o mês, total do mês
+- [x] Tarefas (Lei do Bem) + projeto elegível ou não — 2026-11-24
+- [x] Colaborador: apontar (início/término/almoço), corrigir, excluir, mês com totais e lacunas — 2026-11-24
 - [ ] Responsável: ver horas do mês por pessoa e por projeto; **fechar o mês** (trava edição); exportar Excel/PDF
-- [ ] Bloquear exclusão de usuário/projeto com horas apontadas (só desativar)
+- [x] Bloquear exclusão de usuário/projeto/tarefa com horas apontadas (só desativar) — 2026-11-24
 - [ ] Instalação no servidor da empresa (com a TI)
 
 ### Depois (só se fizer falta)
