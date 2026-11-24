@@ -4,12 +4,21 @@ import sqlite3
 
 import pytest
 
+from apontarhoras.domain import workday
 from apontarhoras.domain.user import User
 from apontarhoras.services import auth_service, users_service
 from apontarhoras.storage.db import Database
 
 ADMIN_PASSWORD = "senha-do-admin-1"
 TEMP_PASSWORD = "temporaria-123"
+
+
+@pytest.fixture(autouse=True)
+def default_schedule():
+    """Cada teste começa com a jornada padrão (o servidor a configura uma vez na partida)."""
+    workday.configure_schedule(workday.DEFAULT_SCHEDULE)
+    yield
+    workday.configure_schedule(workday.DEFAULT_SCHEDULE)
 
 
 @pytest.fixture

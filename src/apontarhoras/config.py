@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from apontarhoras.domain.workday import DEFAULT_SCHEDULE
+
 DATA_ENV = "APONTARHORAS_DADOS"
 DB_FILENAME = "apontarhoras.db"
 
@@ -22,6 +24,7 @@ class Settings:
     host: str = "127.0.0.1"
     port: int = 8080
     secure_cookies: bool = False
+    schedule: tuple[int, ...] = DEFAULT_SCHEDULE  # jornada seg … dom, em minutos
 
     @property
     def db_path(self) -> Path:

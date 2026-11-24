@@ -36,3 +36,13 @@ def test_https_option_turns_on_secure_cookie(tmp_path):
 def test_missing_ini_uses_defaults(tmp_path):
     settings, _ = load_settings(["--config", str(tmp_path / "nao-existe.ini"), "--dados", str(tmp_path)])
     assert settings.port == 8080
+
+
+def test_schedule_from_ini(tmp_path):
+    ini = tmp_path / "ApontarHoras.ini"
+    ini.write_text("[servidor]\njornada = 9:00, 9:00, 9:00, 9:00, 6:30, 0, 0\n", encoding="utf-8-sig")
+    settings, _ = load_settings(["--config", str(ini), "--dados", str(tmp_path)])
+    assert settings.schedule == (540, 540, 540, 540, 390, 0, 0)
+    ini.write_text("[servidor]\njornada =\n", encoding="utf-8-sig")
+    settings, _ = load_settings(["--config", str(ini), "--dados", str(tmp_path)])
+    assert settings.schedule == (480, 480, 480, 480, 480, 0, 0)  # vazio = padrão 8:00 seg–sex

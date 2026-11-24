@@ -50,9 +50,9 @@ def test_national_holidays():
 
 def test_expected_minutes_on_holiday():
     tuesday = date(2026, 11, 24)
-    assert expected_minutes(tuesday) == 507
+    assert expected_minutes(tuesday) == 480  # jornada padrão: 8:00 seg–sex
     assert expected_minutes(tuesday, frozenset({tuesday})) == 0
-    assert expected_minutes(date(2026, 11, 27), {tuesday}) == 462  # outro dia não muda
+    assert expected_minutes(date(2026, 11, 27), {tuesday}) == 480  # outro dia não muda
 
 
 # ---- serviço -------------------------------------------------------------------------------------------------

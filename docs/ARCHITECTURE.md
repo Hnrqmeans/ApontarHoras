@@ -65,7 +65,7 @@ ApontarHoras/
 │   │   ├── audit.py                 ✅ AuditEntry, rótulos, changes() (só o que mudou)
 │   │   ├── task.py                  ✅ Task (tipo de atividade, Lei do Bem)
 │   │   ├── time_entry.py            ✅ horário (7, 730, 7:30), almoço, duração, sobreposição, data, mês
-│   │   ├── workday.py               ✅ jornada seg–qui 8h27 / sex 7h42, feriado = 0; OK / Pendência / Verificar
+│   │   ├── workday.py               ✅ jornada configurável no .ini (padrão 8:00 seg–sex), feriado = 0; OK / Pendência / Verificar
 │   │   ├── audit_chain.py           ✅ conteúdo canônico, selo SHA-256, ChainCheck
 │   │   ├── report.py                ✅ filtros, totais, selos, conferência do mês (D9: sem trava)
 │   │   ├── holiday.py               ✅ Páscoa (Meeus/Butcher), feriados nacionais

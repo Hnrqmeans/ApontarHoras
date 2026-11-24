@@ -11,7 +11,7 @@ from apontarhoras.domain.time_entry import (
     shift_month,
     spans_lunch,
 )
-from apontarhoras.domain.workday import DayStatus
+from apontarhoras.domain.workday import DayStatus, schedule_text
 from apontarhoras.services import projects_service, tasks_service, time_entries_service
 from apontarhoras.services.time_entries_service import DaySummary, MonthSummary, local_today
 from apontarhoras.web.components import (
@@ -125,7 +125,7 @@ def month_page(ctx: Ctx) -> Response:
         f"{nav}"
         '<a class="button primary" href="/apontamentos/novo">Novo apontamento</a></div>'
         + _stats(summary)
-        + '<p class="muted">Jornada esperada: seg–qui 8:27, sex 7:42. <strong>Pendência</strong> = apontou menos; '
+        + f'<p class="muted">Jornada esperada: {e(schedule_text())}. <strong>Pendência</strong> = apontou menos; '
         "<strong>Verificar</strong> = apontou mais (hora extra ou erro). Feriado não tem jornada.</p>"
         '<div class="table-wrap"><table class="entries"><thead><tr><th>Dia</th><th>Horário</th><th>Horas</th>'
         "<th>Projeto</th><th>Tarefa</th><th>Lei do Bem</th><th>Descrição</th><th></th></tr></thead>"

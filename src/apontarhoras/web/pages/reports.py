@@ -18,6 +18,7 @@ from apontarhoras.domain.report import (
     share_percent,
 )
 from apontarhoras.domain.time_entry import format_clock, parse_month, shift_month
+from apontarhoras.domain.workday import schedule_text
 from apontarhoras.integrations.xlsx import MIME_TYPE
 from apontarhoras.services import projects_service, reports_service, tasks_service, users_service
 from apontarhoras.services.reports_service import COLUMNS, REPORT_TITLE, SEAL_EXPLANATION, Emission, Report
@@ -269,7 +270,7 @@ def _pending_page(ctx: Ctx, year: int, month: int, *, error: str | None = None) 
         "Relatório do mês ›</a></div>"
         + _month_notices([status])
         + "<h2>Pendências da equipe</h2>"
-        '<p class="muted">Dias úteis até hoje contra a jornada (seg–qui 8:27, sex 7:42). <strong>Pendência</strong> = '
+        f'<p class="muted">Dias úteis até hoje contra a jornada ({e(schedule_text())}). <strong>Pendência</strong> = '
         "apontou menos; <strong>Verificar</strong> = apontou mais.</p>"
         '<div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Dias com pendência</th>'
         "<th>Dias a verificar</th><th>Apontadas</th><th>Esperadas</th><th>Saldo</th><th></th></tr></thead>"

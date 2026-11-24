@@ -1,6 +1,6 @@
 """Apontamento: horário de início/término, almoço, duração e regras de validação.
 
-Horários são guardados como minutos desde 00:00 (int). Regras vindas da planilha antiga (VBA do formulário de
+Horários são guardados como minutos desde 00:00 (int). Regras vindas do modelo em planilha usado antes (formulário de
 apontamento), com os mesmos limites.
 """
 
