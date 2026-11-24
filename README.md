@@ -25,6 +25,8 @@ de cada alteração.
 - [Desenvolvimento](#desenvolvimento)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Documentação](#documentação)
+- [FAQ](#faq)
+- [Contribuindo](#contribuindo)
 
 ## Funcionalidades
 
@@ -131,3 +133,59 @@ docs/              documentação do projeto
 | [SEGURANCA](docs/SEGURANCA.md) | Dados, acessos, backup e checklist para a TI |
 | [DESENVOLVEDOR](docs/DESENVOLVEDOR.md) | Ambiente, build, instalação, versões |
 | [DEVLOG](docs/DEVLOG.md) | Diário de implementação |
+| [CONTRIBUTING](CONTRIBUTING.md) | Como contribuir, reportar bugs e falhas de segurança |
+
+## FAQ
+
+**Os dados saem da empresa ou vão para a internet?**
+Não. O app roda no servidor interno, não faz nenhuma chamada para fora e não usa serviços na nuvem. Os dados ficam
+num único arquivo (`apontarhoras.db`) na pasta definida no `ApontarHoras.ini`.
+
+**Preciso instalar alguma coisa no meu computador?**
+Não. Basta o navegador (Edge, Chrome ou Firefox). Só o servidor roda o `ApontarHoras.exe`.
+
+**Funciona de casa ou em campo?**
+Sim, pela VPN da empresa. O app não é exposto à internet.
+
+**Esqueci de apontar um dia do mês passado. Perdi?**
+Não. O mês nunca trava: lance normalmente. O apontamento só ganha a marca "Lançado depois do mês".
+
+**Por que a descrição é obrigatória em algumas tarefas?**
+Hora que conta para a Lei do Bem precisa de evidência do que foi feito. Tarefas que não contam não exigem descrição.
+
+**Quem vê as minhas horas? Alguém pode alterá-las?**
+Você e o responsável. Outro colaborador não consegue ver nem alterar, nem montando o pedido à mão. O responsável
+pode corrigir, mas só informando o motivo, e tudo fica na auditoria (quem, quando, antes e depois).
+
+**Esqueci a senha. E se for o único responsável?**
+O responsável define uma senha temporária em Colaboradores. Se o único responsável perder o acesso, a TI roda o
+`RecuperarAcesso.bat` no servidor. Por isso o app pede dois responsáveis.
+
+**Como sei que ninguém mexeu no banco por fora do app?**
+Em Auditoria › *Verificar integridade*. Cada registro sela o anterior; alteração direta no arquivo quebra a
+corrente e aparece ali. Detalhes e limites em [docs/SEGURANCA.md](docs/SEGURANCA.md).
+
+**Quantas pessoas podem usar ao mesmo tempo?**
+Testado com 20 pessoas lançando 20 apontamentos cada, ao mesmo tempo: 400 de 400 gravados, sem erros.
+
+**Feriado aparece como pendência.**
+Cadastre-o em Feriados (há um botão que adiciona os nacionais do ano). Feriados locais e pontos facultativos são
+cadastrados à mão.
+
+**Por que não usa nenhuma biblioteca externa nem JavaScript?**
+Para abrir em máquina limpa, sem instalação, e para reduzir a superfície de ataque: a página não executa scripts.
+
+**Posso usar o ApontarHoras na minha empresa?**
+O projeto ainda não tem licença definida; fale com o mantenedor antes de reutilizar o código.
+
+## Contribuindo
+
+Contribuições são bem-vindas e passam sempre por revisão:
+
+1. Faça um **fork** e crie uma branch a partir da `dev`: `git checkout -b feature/minha-mudanca dev`
+2. Garanta que **`pytest`** e **`ruff check src tests scripts`** passam
+3. Abra um **Pull Request para a `dev`** dizendo o que mudou e por quê (o modelo traz o checklist)
+4. **Sem dados reais** em código, testes ou docs: o repositório é público
+
+Bugs: abra uma issue com a versão, o passo a passo e o trecho do log, **sem dados pessoais**. Falha de segurança:
+fale direto com o mantenedor, não abra issue pública. Guia completo: [CONTRIBUTING.md](CONTRIBUTING.md).
