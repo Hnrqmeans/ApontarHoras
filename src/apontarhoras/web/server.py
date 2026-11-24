@@ -68,6 +68,8 @@ class AppServer(ThreadingHTTPServer):
     """
 
     daemon_threads = True
+    # Fila de conexões pendentes: o padrão (5) fazia o Windows recusar e repetir após ~1 s com 20 pessoas juntas.
+    request_queue_size = 64
     allow_reuse_address = not hasattr(socket, "SO_EXCLUSIVEADDRUSE")  # fora do Windows mantém o padrão
 
     def __init__(self, address: tuple[str, int], app: App) -> None:

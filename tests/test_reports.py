@@ -182,7 +182,7 @@ def test_month_review_flags_later_changes(conn, admin, collaborator, setup):
     assert not report.months[0].changed and report.changed_after_review == frozenset()
 
     # exclusão depois da conferência também aparece (contagem/selo diferentes)
-    time_entries_service.delete_entry(conn, admin, first.id, now=_at(24, 13))
+    time_entries_service.delete_entry(conn, admin, first.id, reason="Lançado em duplicidade", now=_at(24, 13))
     status = reports_service.month_status(conn, admin, 2026, 11)
     assert status.changed and status.entry_count == 1
 

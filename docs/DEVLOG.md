@@ -18,6 +18,30 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-24 — Fase 1 completa: confiança, relatório e implantação (3 frentes em paralelo)  `#feat #seguranca #relatorio`
+**Fase:** 1 — MVP
+**Pedido:** "implementar tudo que falta", com agentes em paralelo; versão continua v0.1.0 (ninguém testou ainda).
+**Como:** 3 worktrees (`feature/confianca-rastro`, `feature/relatorio`, `feature/implantacao`) com migrações
+reservadas (003/004/005), merge em `feature/confianca`. Conflitos só em listas (rotas, menu, Início) e na regra de
+dias: `summarize_days` (extraída de `month_summary`) passou a receber os feriados → "Meus apontamentos" e
+"Pendências da equipe" usam a mesma regra.
+**O que mudou:**
+- Confiança: lançamento tardio sinalizado; motivo obrigatório quando o responsável corrige/exclui horas de outra
+  pessoa; auditoria encadeada (migração 003) + Auditoria › Verificar integridade; `apontarhoras.recuperar` +
+  `RecuperarAcesso.bat`; aviso de responsável único; `docs/SEGURANCA.md`.
+- Responsável: `/relatorio` (filtros da planilha, totais, painel em barras CSS), `/relatorio/pendencias`,
+  conferência do mês sem trava (migração 004, selo SHA-256, "alterado após a conferência"), Excel (`integrations/xlsx`)
+  e impressão/PDF com selo; exportações auditadas.
+- Implantação: importar projetos colando a lista; feriados (migração 005, nacionais + Sexta-feira Santa); favicon;
+  `scripts/carga.py` + `tests/test_concorrencia.py`; CI passa a fazer lint de `scripts/`.
+- Servidor: fila de conexões 64 (a padrão, 5, causava esperas de ~1 s com 20 pessoas).
+**Bug evitado:** `ApontarHoras.exe -m módulo` sem argumentos subiria o servidor (sitecustomize via `['-m']`).
+**Verificado:** 170 testes + ruff ok; carga 20×20 no código integrado: 400/400 gravados, 0 duplicados, 0 falhas;
+GET máx. 85 ms (antes ~1 s).
+**Limitações conhecidas:** re-salvar sem mudar marca "alterado após a conferência" (o selo não muda); recarregar a
+impressão grava nova auditoria; apagar os últimos registros da auditoria só se detecta com o selo anotado fora.
+**Pendências:** teste manual; D10 (TI); instalação no servidor; jornada por pessoa.
+
 ## 2026-11-24 — Mês sem trava (D9) + porta exclusiva  `#decisao #fix`
 **Fase:** 1 — MVP
 **Decisão D9:** o mês **não trava**: quem está em campo ou sem treinamento não pode perder os dias. Confiança

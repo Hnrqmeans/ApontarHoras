@@ -17,6 +17,18 @@ py -3.12 -m venv .venv
 ```
 Banco vazio → a primeira tela cria o responsável. Para recomeçar do zero, apague a pasta de dados de teste.
 
+## Teste de carga
+```powershell
+.\.venv\Scripts\python.exe scripts\carga.py                      # app temporário, 20 colaboradores × 20 apontamentos
+.\.venv\Scripts\python.exe scripts\carga.py --usuarios 50 --apontamentos 10
+```
+Nunca contra produção (cria cadastros "carga…"). Referência 2026-11-24, 20×20 local: 400/400 gravados, 0 falhas,
+POST de apontamento médio ~100 ms, p95 ~460 ms.
+
+## Recuperar o acesso (servidor)
+`RecuperarAcesso.bat` na pasta do app, ou `ApontarHoras.exe -m apontarhoras.recuperar <login>` (em dev:
+`.\.venv\Scripts\python.exe -m apontarhoras.recuperar <login> --dados .\dados-dev`). Pede uma senha temporária.
+
 ## Gerar o pacote (máquina limpa)
 ```powershell
 .\scripts\build.ps1          # lint + testes + dist\ApontarHoras\ + dist\ApontarHoras-vX.Y.Z-windows.zip

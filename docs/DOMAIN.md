@@ -52,14 +52,36 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
   cadastro depois não muda os apontamentos já feitos; corrigir só horário/descrição mantém o valor gravado.
 - **Descrição obrigatória quando conta para a Lei do Bem** (é a evidência); até 1000 caracteres.
 - Corrigir/excluir: o dono ou o responsável (o apontamento continua sendo do dono). Tudo auditado.
+- Corrigir ou excluir apontamento de **outra pessoa** (responsável): **motivo obrigatório** (3–500 caracteres),
+  gravado na auditoria como "motivo". O dono não precisa.
 - **O mês não trava** (D9): quem estava em campo ou sem treinamento lança depois. A confiança vem do rastro:
-  auditoria de tudo, ⏳ lançamento tardio sinalizado e ⏳ conferência do responsável (o que mudar depois dela
-  aparece como "alterado após a conferência").
+  - **Lançamento tardio**: criado depois do fim do mês da data trabalhada (data local do lançamento) aparece como
+    "Lançado depois do mês" (calculado, sem coluna).
+  - **Conferência do responsável**: o que for criado/alterado depois dela aparece como "Alterado após a conferência".
 
 ### Jornada e lacunas (implementado 2026-11-24)
 - Jornada esperada: seg–qui **8h27**, sex **7h42**, sábado/domingo 0 (constante em `domain/workday.py`).
 - "Meus apontamentos" mostra cada dia útil até hoje: **OK** (igual), **Pendência** (menos), **Verificar** (mais).
-  Fim de semana só aparece se tiver horas. ⏳ Feriados e jornada por pessoa.
+  Fim de semana só aparece se tiver horas.
+- **Feriados** (cadastro do responsável, tela Feriados): o dia tem jornada 0 e aparece como "Feriado: descrição",
+  nunca como pendência. O botão "Adicionar feriados nacionais de AAAA" cadastra 01/01, Sexta-feira Santa (pela
+  Páscoa), 21/04, 01/05, 07/09, 12/10, 02/11, 15/11, 20/11 (desde 2024) e 25/12, sem duplicar. Carnaval e Corpus
+  Christi são ponto facultativo: o responsável cadastra se a empresa folgar (idem feriados da cidade).
+- ⏳ Jornada por pessoa (hoje é a mesma para todos).
+
+### Relatório, conferência e exportação (implementado 2026-11-24, só o responsável)
+- **Relatório** (`/relatorio`): filtros da planilha antiga — período (padrão = mês atual; máx. 366 dias),
+  colaborador, projeto, tipo (Todos / Lei do Bem / Não elegível) e tarefa. Totais: nº de apontamentos, horas, horas
+  Lei do Bem e %, não elegíveis. **Painel**: horas por projeto, por tarefa e por colaborador (barras com o número).
+- **Pendências da equipe** (`/relatorio/pendencias`): por pessoa ativa, no mês, dias com pendência, dias a verificar
+  e horas apontadas × esperadas até hoje (mesma regra de "Meus apontamentos", com feriados).
+- **Conferência do mês (D9, sem travar)**: "Marcar mês como conferido" registra quem, quando, nº de apontamentos,
+  total e o **selo** (SHA-256 do conteúdo do mês). Depois disso o que mudar aparece como "Alterado após a
+  conferência"; se algo mudar (inclusive exclusão), o mês avisa "mudou desde a conferência". Pode conferir de novo
+  (vale a última). Nada é bloqueado.
+- **Exportação**: Excel (.xlsx, abas "Apontamentos" e "Resumo") e Impressão/PDF (navegador › Imprimir › Salvar como
+  PDF), com o **selo de conferência** = SHA-256 dos filtros + linhas exportadas (igual nos dois formatos). Texto que
+  começa com `= + - @` recebe `'` no Excel (sem fórmula injetada). Toda exportação fica na auditoria.
 
 ### Tarefas (implementado 2026-11-24)
 - Cadastro do responsável: nome único (2–60), "Conta para a Lei do Bem", ativa. Vêm 9 da planilha antiga:
@@ -94,11 +116,18 @@ Fonte do modelo: planilha de apontamentos de P&D usada hoje pela equipe (arquivo
 - Sempre existe **pelo menos um responsável ativo**; ninguém tira o próprio acesso de responsável, se desativa ou
   se exclui.
 - Colaborador desativado não entra, mas o histórico dele continua.
+- **Recuperação pelo servidor** (`RecuperarAcesso.bat` ou `ApontarHoras.exe -m apontarhoras.recuperar <login>`):
+  define senha temporária, desbloqueia, reativa, encerra sessões e obriga a troca. Auditado como "Redefiniu a
+  senha" por "servidor (recuperação)". Quem tem o console do servidor já tem o arquivo do banco.
+- Com um só responsável ativo, Início e Colaboradores avisam: "Cadastre um segundo responsável".
 
 ### Projetos (implementado 2026-11-23)
 - Código único (1–20 caracteres, guardado em maiúsculas), nome (2–120), descrição opcional (até 2000).
 - Colaborador vê **só projetos ativos** (onde pode apontar); o responsável vê todos.
 - "Conta para a Lei do Bem" (padrão sim): desmarcado para o que não é P&D (ex.: tarefas internas).
+- **Importar lista** (responsável): colar uma linha por projeto, `CÓDIGO - Cliente - Nome` ou `CÓDIGO - Nome` (TAB do
+  Excel também vale). Pré-visualiza (nova / já existe → ignorada / inválida com motivo; repetida = inválida) e
+  importa só as novas numa transação, auditando cada projeto. Até 500 linhas.
 
 ## Exclusão de dados
 Sempre em 2 cliques: link "Excluir" → página com "Confirmar exclusão". Auditada.
@@ -107,10 +136,16 @@ Sempre em 2 cliques: link "Excluir" → página com "Confirmar exclusão". Audit
 | Usuário     | Excluir (não a si mesmo; mantém ≥ 1 responsável). Com horas apontadas: só desativar. | `test_delete_user`, `test_cannot_delete_records_with_hours` |
 | Projeto     | Excluir. Com horas apontadas: só desativar. | `test_projects_crud_and_visibility`, `test_cannot_delete_records_with_hours` |
 | Tarefa      | Excluir. Com horas apontadas: só desativar. | `test_tasks_crud_and_permissions`, `test_cannot_delete_records_with_hours` |
-| Apontamento | Excluir (dono ou responsável). ⏳ Só em mês aberto. | `test_only_owner_or_admin_touches_entry` |
+| Apontamento | Excluir (dono, ou responsável com motivo). O mês não trava (D9). | `test_only_owner_or_admin_touches_entry`, `test_confianca` |
+| Feriado     | Excluir (o dia volta a ter jornada). | `test_holidays_crud_and_audit` |
 | Auditoria   | **Não se exclui** (prova para a Lei do Bem).                          | — |
 
 ## Auditoria
 Toda criação/edição/exclusão de cadastro, login, senha errada, bloqueio e troca/redefinição de senha registra:
 quem, quando (UTC), ação, item e detalhes (na edição, só o que mudou: antes → depois). **Nunca** grava senha.
-Somente o responsável consulta (tela Auditoria, últimos 200). Apontamentos (criar/corrigir/excluir, com o colaborador). ⏳ Conferência do mês.
+Somente o responsável consulta (tela Auditoria, últimos 200). Também: apontamentos (criar/corrigir/excluir, com o
+colaborador e o motivo), tarefas, feriados, importação, conferência do mês e exportações (com o selo).
+- **Auditoria encadeada** (à prova de alteração): cada registro tem `hash = SHA-256(hash anterior + conteúdo)`.
+  Auditoria › **Verificar integridade** mostra "Íntegro: N registros" ou "ALTERAÇÃO DETECTADA a partir do #X".
+- Limite: apagar os últimos registros ou recalcular a corrente inteira não se detecta sozinho — por isso a tela mostra
+  o nº e o selo do último registro para o responsável **anotar fora do servidor** e comparar depois.
