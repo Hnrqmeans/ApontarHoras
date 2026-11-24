@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from apontarhoras.domain.audit import AuditEntry
+from apontarhoras.domain.audit_chain import ChainCheck
 from apontarhoras.domain.user import User
 from apontarhoras.services.common import require_admin, utcnow
 from apontarhoras.storage import audit_repo
@@ -32,6 +33,18 @@ def record(
         entity_id=entity_id,
         details=details or {},
     )
+
+
+def verify_integrity(conn: sqlite3.Connection, actor: User | None) -> ChainCheck:
+    """Confere a corrente de selos da auditoria inteira (detecta alteração direta no arquivo do banco)."""
+    require_admin(actor)
+    return audit_repo.verify_chain(conn)
+
+
+def seal_of(conn: sqlite3.Connection, actor: User | None, audit_id: int) -> str | None:
+    """Selo gravado num registro (para comparar com um selo anotado fora do servidor)."""
+    require_admin(actor)
+    return audit_repo.get_hash(conn, audit_id)
 
 
 def list_recent(conn: sqlite3.Connection, actor: User | None, limit: int = 200) -> list[AuditEntry]:

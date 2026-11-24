@@ -1,10 +1,12 @@
 """Ponta a ponta: servidor HTTP de verdade numa porta livre, navegando como um usuário (urllib + cookies)."""
 
+import io
 import re
 import threading
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from http.cookiejar import CookieJar
 
 import pytest
@@ -159,6 +161,16 @@ def test_post_from_other_site_is_rejected(server):
     assert status == 403
 
 
+def test_second_instance_cannot_share_port(db):
+    """Duas cópias na mesma porta dividiriam as requisições em silêncio: a 2ª tem que falhar."""
+    first = AppServer(("127.0.0.1", 0), App(db))
+    try:
+        with pytest.raises(OSError):
+            AppServer(("127.0.0.1", first.server_address[1]), App(db))
+    finally:
+        first.server_close()
+
+
 def test_browser_origin_is_accepted(server):
     """Navegador de verdade manda `Origin` em todo POST; a política de referrer não pode virar `Origin: null`."""
     browser = Browser(server)
@@ -223,3 +235,77 @@ def test_collaborator_records_hours(server):
     assert "Calibração" not in mine
     status, _, _, _ = admin.get(f"/apontamentos/{entry_id}/editar")  # responsável pode corrigir
     assert status == 200
+
+
+def _download(browser: Browser, path: str) -> tuple[int, bytes, dict]:
+    """Exportação binária (.xlsx): lê os bytes sem decodificar como texto."""
+    with browser.opener.open(urllib.request.Request(browser.base + path), timeout=10) as response:
+        return response.status, response.read(), dict(response.headers)
+
+
+def test_report_review_and_exports(server):
+    admin = _setup_admin(server)
+    admin.get("/projetos/novo")
+    admin.post("/projetos/novo", {"codigo": "pd-01", "nome": "Sensor novo", "descricao": "", "lei_do_bem": "1"})
+    _, _, form_page, _ = admin.get("/apontamentos/novo")
+    project_id = re.search(r'<option value="(\d+)">PD-01', form_page).group(1)
+    task_id = re.search(r'<option value="(\d+)">Desenvolvimento', form_page).group(1)
+    today = __import__("datetime").date.today()
+    admin.post("/apontamentos/novo", {"data": today.isoformat(), "projeto": project_id, "tarefa": task_id,
+                                      "inicio": "8", "termino": "10", "almoco": "", "descricao": "Ensaio <x>"})
+    # relatório + painel (padrão = mês atual)
+    status, _, body, _ = admin.get("/relatorio")
+    assert status == 200
+    assert 'href="/relatorio" class="active">Relatório' in body
+    assert "Ensaio &lt;x&gt;" in body and "Horas por projeto" in body
+    assert 'class="bar w-100"' in body and "2:00" in body
+    assert "style=" not in body  # a CSP bloqueia estilo inline
+    _, _, body, _ = admin.get("/relatorio?inicio=2020-01-01&fim=2026-12-31")
+    assert "no máximo 366 dias" in body
+    # impressão / PDF
+    query = urllib.parse.urlencode({"inicio": today.replace(day=1).isoformat(), "fim": today.isoformat()})
+    status, _, body, _ = admin.get(f"/relatorio/imprimir?{query}")
+    assert status == 200
+    assert "RELATÓRIO DE APONTAMENTOS P&amp;D" in body and "Salvar como PDF" in body
+    seal = re.search(r'class="seal">([0-9a-f ]{19})<', body).group(1)
+    # Excel
+    status, content, headers = _download(admin, f"/relatorio/excel?{query}")
+    assert status == 200
+    assert headers["Content-Type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    expected_name = f"apontamentos_{today.replace(day=1).isoformat()}_{today.isoformat()}.xlsx"
+    assert headers["Content-Disposition"] == f'attachment; filename="{expected_name}"'
+    with zipfile.ZipFile(io.BytesIO(content)) as archive:
+        summary = archive.read("xl/worksheets/sheet2.xml").decode()
+        assert seal in summary  # mesmo selo na impressão e no Excel
+        assert "Ensaio &lt;x&gt;" in archive.read("xl/worksheets/sheet1.xml").decode()
+    # pendências + conferência do mês
+    _, _, body, _ = admin.get("/relatorio/pendencias")
+    assert "Marcar mês como conferido" in body and "Ana Responsável" in body
+    month = today.strftime("%Y-%m")
+    _, path, body, _ = admin.post("/relatorio/conferir", {"mes": month})
+    assert path == "/relatorio/pendencias" and "Mês marcado como conferido" in body
+    assert "Conferido em" in body
+    _, _, body, _ = admin.get("/relatorio/pendencias")
+    admin.post("/relatorio/conferir", {"mes": "2099-01"})
+    assert "mês futuro" in admin.last
+    _, _, body, _ = admin.get("/auditoria")
+    assert "Conferiu" in body and "Exportou" in body and "Conferência do mês" in body
+
+
+def test_collaborator_cannot_reach_reports(server):
+    admin = _setup_admin(server)
+    admin.get("/usuarios/novo")
+    admin.post("/usuarios/novo", {"nome": "Bruno Colaborador", "login": "bruno", "papel": "colaborador",
+                                  "senha": "temporaria-123"})
+    bruno = Browser(server)
+    bruno.get("/entrar")
+    bruno.post("/entrar", {"login": "bruno", "senha": "temporaria-123"})
+    _, _, body, _ = bruno.post("/trocar-senha", {"atual": "temporaria-123", "nova": "senha-do-bruno",
+                                                 "confirmacao": "senha-do-bruno"})
+    assert "/relatorio" not in body  # nem aparece no menu
+    for url in ["/relatorio", "/relatorio/excel", "/relatorio/imprimir", "/relatorio/pendencias"]:
+        status, _, _, _ = bruno.get(url)
+        assert status == 403, url
+    bruno.get("/")
+    status, _, _, _ = bruno.post("/relatorio/conferir", {"mes": "2026-11"})
+    assert status == 403

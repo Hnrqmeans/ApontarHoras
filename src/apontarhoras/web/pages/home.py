@@ -1,6 +1,7 @@
 """Início: atalhos para apontar; o responsável também vê os cadastros."""
 
-from apontarhoras.web.components import e, page
+from apontarhoras.services import users_service
+from apontarhoras.web.components import e, page, single_admin_notice
 from apontarhoras.web.http import Response
 from apontarhoras.web.routing import Access, Ctx, Route
 
@@ -20,9 +21,14 @@ def home(ctx: Ctx) -> Response:
             "apontadas.</a>"
             '<a class="card" href="/tarefas"><strong>Tarefas</strong>Tipos de atividade e quais contam para a Lei do '
             "Bem.</a>"
+            '<a class="card" href="/relatorio"><strong>Relatório</strong>Conferir o mês, pendências da equipe e '
+            "exportar (Excel e PDF).</a>"
+            '<a class="card" href="/feriados"><strong>Feriados</strong>Dias sem jornada (não viram pendência).</a>'
             '<a class="card" href="/auditoria"><strong>Auditoria</strong>Quem fez o quê e quando.</a>'
         )
     body = f"<p>Olá, {e(user.name.split()[0])}.</p>" + f'<div class="cards">{cards}</div>'
+    if user.is_admin and users_service.has_single_admin(ctx.conn, user):
+        body = single_admin_notice() + body
     return page(ctx, "Início", body)
 
 

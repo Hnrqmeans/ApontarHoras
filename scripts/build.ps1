@@ -74,12 +74,14 @@ Copy-Item "scripts\portable\sitecustomize.py" $sitePackages
 Set-Content (Join-Path $output "python312._pth") "python312.zip`r`n.`r`nLib\site-packages`r`nimport site" -Encoding ascii
 
 Copy-Item "scripts\portable\ApontarHoras.ini" $output
+Copy-Item "scripts\portable\RecuperarAcesso.bat" $output
 Set-Content (Join-Path $output "LEIA-ME.txt") (
     "ApontarHoras v$version`r`n`r`n" +
     "Testar neste computador: dois cliques em ApontarHoras.exe (abre o navegador em http://localhost:8080).`r`n" +
     "No servidor da empresa: em ApontarHoras.ini, rede = sim, abrir_navegador = nao e dados = pasta com backup.`r`n" +
     "Os colaboradores só precisam do navegador: http://<nome-do-servidor>:8080/`r`n`r`n" +
     "Dados (padrão): %LOCALAPPDATA%\ApontarHoras\apontarhoras.db`r`n" +
+    "Perdeu o acesso (ex.: único responsável esqueceu a senha)? No servidor: RecuperarAcesso.bat.`r`n" +
     "Atualizar = trocar esta pasta, guardando o seu ApontarHoras.ini; os dados continuam onde estão.") -Encoding utf8
 
 $zip = Join-Path $root "dist\ApontarHoras-v$version-windows.zip"

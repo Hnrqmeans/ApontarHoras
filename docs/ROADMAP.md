@@ -12,10 +12,14 @@
 - **Apontamento pronto (2026-11-24, branch `feature/apontamento`):** modelo tirado da planilha antiga (DOMAIN ›
   Planilha antiga): tarefas com Lei do Bem, início/término com almoço, sem sobreposição, "Meus apontamentos" com
   lacunas contra a jornada. 102 testes ok. Exclusão com horas bloqueada (só desativar).
+- **Fase 1 completa em código (2026-11-24, branch `feature/confianca`):** relatório + painel + pendências da equipe,
+  conferência do mês sem trava (D9), Excel/PDF com selo, auditoria encadeada, motivo nas correções do responsável,
+  lançamento tardio, recuperação de acesso, feriados, importar projetos, porta exclusiva. 170 testes ok; carga
+  20×20 = 400/400 gravados, 0 falhas.
+- **Versão:** fica em **v0.1.0** até alguém testar de verdade (pedido do usuário, 2026-11-24): sem tag, sem `main`.
 - **Arquitetura (D1, 2026-11-23):** servidor da empresa; remotos pela VPN. Usuário vai levar o checklist à TI.
-- **Próximo:** visão do responsável (horas de todos por pessoa/projeto/tarefa, filtros da planilha), **fechar o
-  mês**, exportar Excel/PDF; importar a lista de projetos da planilha; teste de carga (20 pessoas).
-- **Bloqueios:** nenhum.
+- **Próximo:** teste manual do usuário e demonstração ao responsável; respostas da TI (D10); instalação no servidor.
+- **Bloqueios:** teste manual; TI (D10).
 - **Última atualização:** 2026-11-24
 
 > IA: leia só esta seção no início da rotina. O restante é consulta sob demanda.
@@ -33,6 +37,8 @@
 | D6 | Forma de apontar                                                 | ✅ Como a planilha (2026-11-24): início/término por atividade, tarefa define a Lei do Bem. |
 | D7 | Executável ou navegador para o colaborador?                      | ✅ Navegador (o .exe roda só no servidor). |
 | D8 | Dependências                                                     | ✅ **Nenhuma** no app (2026-11-23): só biblioteca padrão; abre em máquina limpa. |
+| D9 | Travar o mês?                                                    | ✅ **Não** (2026-11-24): quem está em campo ou sem treinamento não pode perder os dias. Confiança pelo **rastro** (auditoria, lançamento tardio sinalizado, conferência), não por bloqueio. |
+| D10 | O que a TI já tem (ponto, ERP, AD, HTTPS, backup)?              | ⏳ Perguntas com o usuário (2026-11-24). Se houver ponto/ERP, exportação e lacunas podem integrar com ele. |
 
 ---
 
@@ -46,7 +52,12 @@
 - [x] Pacote portátil Windows (`ApontarHoras.exe` + `ApontarHoras.ini`), validado isolado — 2026-11-23
 - [x] Tarefas (Lei do Bem) + projeto elegível ou não — 2026-11-24
 - [x] Colaborador: apontar (início/término/almoço), corrigir, excluir, mês com totais e lacunas — 2026-11-24
-- [ ] Responsável: ver horas do mês por pessoa e por projeto; **fechar o mês** (trava edição); exportar Excel/PDF
+- [x] Responsável: relatório com filtros + painel; pendências da equipe; **conferir o mês** (sem travar, D9);
+  exportar Excel/PDF com selo — 2026-11-24
+- [x] Confiança: lançamento tardio, motivo nas correções do responsável, auditoria encadeada + Verificar integridade,
+  recuperação de acesso pelo servidor, aviso de responsável único, `docs/SEGURANCA.md` — 2026-11-24
+- [x] Implantação: importar projetos colando a lista, feriados (nacionais + Sexta-feira Santa), ícone da aba,
+  teste de carga (`scripts/carga.py`), porta exclusiva e fila de conexões 64 — 2026-11-24
 - [x] Bloquear exclusão de usuário/projeto/tarefa com horas apontadas (só desativar) — 2026-11-24
 - [ ] Instalação no servidor da empresa (com a TI)
 

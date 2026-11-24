@@ -6,7 +6,7 @@ mês, confere e exporta as horas de todos.
 
 - **Sem dependências:** só a biblioteca padrão do Python; o pacote para Windows leva o Python oficial junto e abre
   em máquina limpa.
-- Estado: fundação pronta (login, papéis, cadastros, auditoria). Apontamento e exportação em andamento —
-  ver [docs/ROADMAP.md](docs/ROADMAP.md).
+- Estado: Fase 1 completa em código (apontamento, relatório, conferência do mês, Excel/PDF, auditoria encadeada),
+  **aguardando o primeiro teste manual** — ver [docs/ROADMAP.md](docs/ROADMAP.md). Segurança: [docs/SEGURANCA.md](docs/SEGURANCA.md).
 
 Desenvolvimento e build: [docs/DESENVOLVEDOR.md](docs/DESENVOLVEDOR.md).

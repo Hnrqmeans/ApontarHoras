@@ -134,7 +134,8 @@ def test_only_owner_or_admin_touches_entry(conn, admin, collaborator, project):
                                           task_id=task.id, start="8", end="9", description="x", today=TODAY)
     # o responsável corrige o apontamento de outra pessoa; continua sendo da pessoa
     edited = time_entries_service.update_entry(conn, admin, entry.id, work_date="2026-11-24", project_id=project.id,
-                                               task_id=task.id, start="8", end="9", description="x", today=TODAY)
+                                               task_id=task.id, start="8", end="9", description="x", today=TODAY,
+                                               reason="Horário informado errado")
     assert edited.user_id == collaborator.id
     time_entries_service.delete_entry(conn, collaborator, entry.id)
     with pytest.raises(NotFound):

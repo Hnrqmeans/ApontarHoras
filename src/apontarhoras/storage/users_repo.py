@@ -28,6 +28,11 @@ def get(conn: sqlite3.Connection, user_id: int) -> User | None:
     return _to_user(row) if row else None
 
 
+def get_by_login(conn: sqlite3.Connection, login: str) -> User | None:
+    row = conn.execute(f"SELECT {_COLUMNS} FROM users WHERE login = ?", (login,)).fetchone()
+    return _to_user(row) if row else None
+
+
 def get_with_hash(conn: sqlite3.Connection, login: str) -> tuple[User, str] | None:
     row = conn.execute(f"SELECT {_COLUMNS}, password_hash FROM users WHERE login = ?", (login,)).fetchone()
     return (_to_user(row), row["password_hash"]) if row else None

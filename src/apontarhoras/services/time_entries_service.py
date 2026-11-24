@@ -7,7 +7,7 @@ pelas 12:00–13:00, sem sobreposição no mesmo dia, descrição obrigatória q
 import calendar
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, tzinfo
 
 from apontarhoras.domain.audit import changes
 from apontarhoras.domain.duration import format_minutes
@@ -16,15 +16,17 @@ from apontarhoras.domain.time_entry import (
     TimeEntry,
     compute_minutes,
     format_clock,
+    is_late_entry,
     overlaps,
     parse_clock,
     parse_lunch,
     parse_work_date,
+    validate_correction_reason,
     validate_description,
 )
 from apontarhoras.domain.user import User
 from apontarhoras.domain.workday import DayStatus, day_status, expected_minutes
-from apontarhoras.services import audit
+from apontarhoras.services import audit, holidays_service
 from apontarhoras.services.common import require_user, utcnow
 from apontarhoras.storage import projects_repo, tasks_repo, time_entries_repo
 from apontarhoras.storage.db import transaction
@@ -42,6 +44,7 @@ class DaySummary:
     worked: int
     expected: int
     status: DayStatus
+    holiday: str = ""  # descrição do feriado ("" = dia normal)
 
 
 @dataclass(frozen=True)
@@ -73,8 +76,50 @@ def _get_allowed(conn: sqlite3.Connection, actor: User | None, entry_id: int) ->
     return user, entry
 
 
+def entered_late(entry: TimeEntry, *, tz: tzinfo | None = None) -> bool:
+    """Lançado depois do fim do mês trabalhado (data local de `created_at`; `tz` = fuso do servidor)."""
+    return is_late_entry(entry.work_date, entry.created_at.astimezone(tz).date())
+
+
+def _reason_for(user: User, entry: TimeEntry, reason: str) -> dict:
+    """Quem mexe no apontamento de outra pessoa (o responsável) precisa dizer o motivo; o dono, não."""
+    if user.id == entry.user_id:
+        return {}
+    return {"motivo": validate_correction_reason(reason)}
+
+
 def get_entry(conn: sqlite3.Connection, actor: User | None, entry_id: int) -> TimeEntry:
     return _get_allowed(conn, actor, entry_id)[1]
+
+
+def summarize_days(
+    entries: list[TimeEntry], year: int, month: int, today: date, holidays: dict[date, str] | None = None
+) -> list[DaySummary]:
+    """Os dias do mês de UMA pessoa contra a jornada (regra única de lacunas; o relatório da equipe também usa).
+
+    Todo dia útil até hoje (dia sem apontamento = pendência), os feriados (sem jornada, nunca pendência) e os fins
+    de semana que tiverem horas. `holidays`: data → descrição.
+    """
+    holidays = holidays or {}
+    holiday_days = frozenset(holidays)
+    last_day = calendar.monthrange(year, month)[1]
+    by_day: dict[date, list[TimeEntry]] = {}
+    for entry in entries:
+        by_day.setdefault(entry.work_date, []).append(entry)
+
+    days: list[DaySummary] = []
+    for number in range(1, last_day + 1):
+        day = date(year, month, number)
+        if day > today:
+            break
+        day_entries = by_day.get(day, [])
+        expected = expected_minutes(day, holiday_days)
+        holiday = holidays.get(day, "")
+        if expected == 0 and not day_entries and not holiday:
+            continue
+        worked = sum(entry.minutes for entry in day_entries)
+        days.append(DaySummary(day, day_entries, worked, expected, day_status(worked, expected), holiday))
+    return days
 
 
 def month_summary(
@@ -82,28 +127,15 @@ def month_summary(
 ) -> MonthSummary:
     """Os apontamentos do próprio usuário no mês, dia a dia, com a conferência contra a jornada.
 
-    Mostra todo dia útil até hoje (dia sem apontamento = pendência) e os fins de semana que tiverem horas.
+    Mostra todo dia útil até hoje (dia sem apontamento = pendência), os feriados (sem jornada, nunca pendência) e
+    os fins de semana que tiverem horas.
     """
     user = require_user(actor)
     today = today or local_today()
     first_day = date(year, month, 1)
     last_day = date(year, month, calendar.monthrange(year, month)[1])
     entries = time_entries_repo.list_for_user(conn, user.id, first_day, last_day)
-    by_day: dict[date, list[TimeEntry]] = {}
-    for entry in entries:
-        by_day.setdefault(entry.work_date, []).append(entry)
-
-    days: list[DaySummary] = []
-    for number in range(1, last_day.day + 1):
-        day = date(year, month, number)
-        if day > today:
-            break
-        day_entries = by_day.get(day, [])
-        expected = expected_minutes(day)
-        if expected == 0 and not day_entries:
-            continue
-        worked = sum(entry.minutes for entry in day_entries)
-        days.append(DaySummary(day, day_entries, worked, expected, day_status(worked, expected)))
+    days = summarize_days(entries, year, month, today, holidays_service.holidays_in(conn, first_day, last_day))
 
     return MonthSummary(
         year=year,
@@ -242,11 +274,14 @@ def update_entry(
     end: str,
     lunch: str = "",
     description: str = "",
+    reason: str = "",
     today: date | None = None,
     now: datetime | None = None,
 ) -> TimeEntry:
+    """`reason` é obrigatório (3–500 caracteres) quando quem corrige não é o dono do apontamento."""
     with transaction(conn):
         user, before = _get_allowed(conn, actor, entry_id)
+        motive = _reason_for(user, before, reason)
         values = _validate(
             conn, before.user_id, work_date=work_date, project_id=project_id, task_id=task_id, start=start,
             end=end, lunch=lunch, description=description, today=today or local_today(), current=before,
@@ -255,13 +290,17 @@ def update_entry(
         after = time_entries_repo.get(conn, entry_id)
         diff = changes(_snapshot(before), _snapshot(after))
         if diff:
-            audit.record(conn, user, "update", "time_entry", entry_id, {"colaborador": after.user_name, **diff},
-                         now=now)
+            audit.record(conn, user, "update", "time_entry", entry_id,
+                         {"colaborador": after.user_name, **diff, **motive}, now=now)
     return after
 
 
-def delete_entry(conn: sqlite3.Connection, actor: User | None, entry_id: int, *, now: datetime | None = None) -> None:
+def delete_entry(
+    conn: sqlite3.Connection, actor: User | None, entry_id: int, *, reason: str = "", now: datetime | None = None
+) -> None:
+    """`reason` é obrigatório (3–500 caracteres) quando quem exclui não é o dono do apontamento."""
     with transaction(conn):
         user, entry = _get_allowed(conn, actor, entry_id)
+        motive = _reason_for(user, entry, reason)
         time_entries_repo.delete(conn, entry_id)
-        audit.record(conn, user, "delete", "time_entry", entry_id, _snapshot(entry), now=now)
+        audit.record(conn, user, "delete", "time_entry", entry_id, {**_snapshot(entry), **motive}, now=now)

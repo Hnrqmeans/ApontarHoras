@@ -23,7 +23,10 @@ class DayStatus(StrEnum):
         }[self]
 
 
-def expected_minutes(day: date) -> int:
+def expected_minutes(day: date, holidays: frozenset[date] | set[date] = frozenset()) -> int:
+    """Minutos esperados no dia; feriado (cadastrado pelo responsável) não tem jornada."""
+    if day in holidays:
+        return 0
     return EXPECTED_MINUTES_BY_WEEKDAY[day.weekday()]
 
 

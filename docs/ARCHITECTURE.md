@@ -12,6 +12,12 @@
 | 2026-11-23 | Duração em minutos (int)                  | Evita erro de arredondamento de horas em `float`.                      |
 | 2026-11-23 | Pacote = Python 3.12 embeddable oficial; `python.exe` renomeado `ApontarHoras.exe` | Assinado pela PSF (PyInstaller é bloqueado pelo Windows); console mostra o endereço. |
 | 2026-11-23 | Configuração em `ApontarHoras.ini` ao lado do .exe | O Python embutido recusa opções `--` desconhecidas na linha de comando. |
+| 2026-11-24 | `Referrer-Policy: same-origin` (não `no-referrer`) | Com `no-referrer` o navegador manda `Origin: null` e a trava de origem recusava todos os formulários. |
+| 2026-11-24 | Porta exclusiva (`SO_EXCLUSIVEADDRUSE`) e fila de 64 conexões | No Windows uma 2ª cópia subia na mesma porta e dividia as requisições; a fila padrão (5) dava esperas de ~1 s. |
+| 2026-11-24 | Auditoria encadeada (SHA-256, migração 003) selada em Python | SQLite não tem sha256; detecta alteração direta no arquivo do banco. |
+| 2026-11-24 | Recuperação de acesso por `python -m apontarhoras.recuperar` | O .exe embutido recusa `--`, mas aceita `-m`; o sitecustomize só sobe o servidor sem argumentos. |
+| 2026-11-24 | Excel com zipfile + XML (inlineStr); PDF = página de impressão do navegador | Zero dependências; inlineStr não vira fórmula. |
+| 2026-11-24 | Gráficos sem JS nem style inline: classes de largura `.w-0`…`.w-100` | A CSP (`default-src 'self'`) bloqueia style inline. |
 
 ## Como roda
 ```
@@ -49,6 +55,7 @@ ApontarHoras/
 ├── src/apontarhoras/
 │   ├── __init__.py                  ✅ __version__, APP_NAME
 │   ├── __main__.py / main.py        ✅ load_settings (padrão ← .ini ← linha de comando), sobe o servidor
+│   ├── recuperar.py                 ✅ recuperação de acesso pelo console do servidor
 │   ├── config.py                    ✅ Settings, pasta de dados padrão (APONTARHORAS_DADOS / %LOCALAPPDATA%)
 │   ├── domain/
 │   │   ├── errors.py                ✅ AppError → ValidationError, PermissionDenied, NotFound, AuthError
@@ -58,33 +65,47 @@ ApontarHoras/
 │   │   ├── audit.py                 ✅ AuditEntry, rótulos, changes() (só o que mudou)
 │   │   ├── task.py                  ✅ Task (tipo de atividade, Lei do Bem)
 │   │   ├── time_entry.py            ✅ horário (7, 730, 7:30), almoço, duração, sobreposição, data, mês
-│   │   ├── workday.py               ✅ jornada seg–qui 8h27 / sex 7h42; OK / Pendência / Verificar
-│   │   └── period.py                ⏳ fechamento do mês
+│   │   ├── workday.py               ✅ jornada seg–qui 8h27 / sex 7h42, feriado = 0; OK / Pendência / Verificar
+│   │   ├── audit_chain.py           ✅ conteúdo canônico, selo SHA-256, ChainCheck
+│   │   ├── report.py                ✅ filtros, totais, selos, conferência do mês (D9: sem trava)
+│   │   ├── holiday.py               ✅ Páscoa (Meeus/Butcher), feriados nacionais
+│   │   └── project_import.py        ✅ parser da lista colada (nova/existe/inválida, limite 500)
 │   ├── auth/passwords.py, tokens.py ✅ scrypt; token de sessão; csrf_for
 │   ├── storage/
 │   │   ├── db.py                    ✅ Database, transaction, migrate, datas UTC ISO
 │   │   ├── migrations/001_init.sql  ✅ users, sessions, projects, audit_log
 │   │   ├── migrations/002_apontamentos.sql ✅ tasks (+9 padrão), projects.rd_eligible, time_entries
-│   │   └── users_repo, sessions_repo, projects_repo, tasks_repo, time_entries_repo, audit_repo ✅
+│   │   ├── migrations/003_audit_chain.sql  ✅ prev_hash/hash em audit_log
+│   │   ├── migrations/004_month_reviews.sql ✅ conferências do mês
+│   │   ├── migrations/005_holidays.sql     ✅ feriados
+│   │   └── users, sessions, projects, tasks, time_entries, audit, reports, holidays (_repo) ✅
 │   ├── services/
 │   │   ├── common.py                ✅ utcnow, require_user, require_admin
 │   │   ├── auth_service.py          ✅ primeiro acesso, login (bloqueio 5× / 15 min), sessão 12 h, trocar senha
 │   │   ├── users_service.py         ✅ CRUD + redefinir senha; sempre ≥ 1 responsável; não se rebaixa/exclui
 │   │   ├── projects_service.py      ✅ CRUD; colaborador vê só ativos; com horas: só desativar
 │   │   ├── tasks_service.py         ✅ CRUD de tarefas (responsável)
-│   │   ├── time_entries_service.py  ✅ apontar/corrigir/excluir (dono ou responsável), resumo do mês
+│   │   ├── time_entries_service.py  ✅ apontar/corrigir/excluir (dono, ou responsável com motivo), resumo do mês
+│   │   ├── reports_service.py       ✅ relatório, pendências da equipe, conferir mês, exportar (responsável)
+│   │   ├── holidays_service.py      ✅ feriados (responsável)
+│   │   ├── project_import_service.py ✅ importar projetos colando a lista
 │   │   └── audit.py                 ✅ record (na transação), list_recent (só responsável)
+│   ├── integrations/xlsx/writer.py  ✅ .xlsx mínimo (zipfile + XML)
 │   └── web/
 │       ├── server.py                ✅ AppServer (ThreadingHTTPServer), limite de 1 MB por envio
 │       ├── app.py                   ✅ despacho, travas, cabeçalhos de segurança, arquivos estáticos
 │       ├── http.py, routing.py      ✅ Request/Response, Route/Access/Ctx
 │       ├── components.py            ✅ layout, campos, form (com CSRF), e() (escape), mensagens
-│       ├── static/style.css         ✅ tema claro/escuro automático
-│       └── pages/                   ✅ auth, home, entries (apontamentos), users, projects, tasks, audit
-└── tests/                           ✅ domain, storage, services (permissões), main (.ini), web (ponta a ponta)
+│       ├── static/style.css, favicon.svg ✅ tema claro/escuro automático; /favicon.ico sem login
+│       └── pages/                   ✅ auth, home, entries, users, projects, project_import, tasks, reports,
+│                                       holidays, audit (+ Verificar integridade)
+├── scripts/carga.py                 ✅ teste de carga (fora do pytest; versão leve em tests/test_concorrencia.py)
+├── scripts/portable/RecuperarAcesso.bat ✅
+└── tests/                           ✅ domain, storage, services, web, confiança, relatório, xlsx, feriados, carga
 ```
 
 ## Segurança (implementado na fundação)
+Visão completa para o responsável e a TI: [SEGURANCA.md](SEGURANCA.md).
 - Senha: scrypt com sal; mínimo 8 caracteres; bloqueio de 15 min após 5 erros seguidos; mesma mensagem para
   "usuário não existe" e "senha errada" (com o mesmo tempo de resposta).
 - Senha temporária (criada/redefinida pelo responsável) obriga a troca no próximo acesso.
@@ -100,7 +121,8 @@ ApontarHoras/
 - Sistema do servidor e permissão para o app iniciar sozinho (Agendador de Tarefas "ao iniciar" ou serviço).
 - **Uma porta interna** liberada no firewall (ex.: 8080), acessível pela rede e pela VPN; **não** exposta à internet.
 - Nome fixo na rede (ex.: `apontarhoras.<dominio-interno>`) ou IP fixo.
-- Pasta para o banco + **backup diário** (copiar `apontarhoras.db` com o app parado, ou backup do volume).
+- Pasta para o banco + **backup diário**: app parado, `sqlite3 .backup` ou snapshot VSS; nunca só o `.db` com o app
+  aberto (WAL). Permissão da pasta só para a conta do serviço e a TI.
 - HTTPS interno com certificado da empresa: desejável conforme a política da TI.
 
 ## Opções avaliadas em 2026-11-23 (escolhida a A)
