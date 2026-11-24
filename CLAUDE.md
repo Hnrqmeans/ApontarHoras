@@ -4,10 +4,10 @@
 > Detalhes ficam em `docs/` e só devem ser abertos quando a tarefa exigir.
 
 ## O projeto em 3 linhas
-**ApontarHoras**: app **executável (Windows)** para a equipe de uma empresa apontar horas trabalhadas por
-projeto/atividade, enviar para aprovação, e um **administrador/gestor** gerenciar usuários, projetos, aprovar e
-exportar relatórios. Dados **centralizados** (todos da equipe enxergam a mesma base, cada um com sua permissão).
-Stack proposta: **Python 3.12 + NiceGUI + banco central** — arquitetura em decisão (ver ROADMAP › Decisões em aberto).
+**ApontarHoras**: app **executável (Windows)** para a equipe apontar horas em projetos de P&D (evidência para a
+**Lei do Bem**); no fim do mês um **responsável** confere, fecha e exporta. **Escopo simples por enquanto**
+(sem aprovação, sem gestores). Stack proposta: **Python 3.12 + NiceGUI** — forma de reunir os dados em decisão
+(ver ROADMAP › Decisões, D1).
 
 ## Protocolo de leitura (economia de tokens)
 1. Leia **apenas** a seção `## Status atual` de [docs/ROADMAP.md](docs/ROADMAP.md).

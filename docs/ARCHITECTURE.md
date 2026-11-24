@@ -6,9 +6,18 @@
 | 2026-11-23 | Python 3.12 + NiceGUI (proposta)| Mesma stack do Pagodinho: UI só em Python, roda como janela **ou** servidor web. |
 | 2026-11-23 | Duração em minutos (int)        | Evita erro de arredondamento de horas em `float`.                       |
 | 2026-11-23 | Pacote Python embeddable (proposta) | Técnica já validada no Pagodinho (PyInstaller é bloqueado pelo Windows). |
-| —          | **Banco/servidor central**      | **Em aberto (ROADMAP › D1)**.                                           |
+| 2026-11-23 | **Servidor da empresa (opção A)** + VPN para remotos | A empresa já tem servidor; uma pessoa exporta os dados de todos sem ninguém enviar arquivo. |
 
-## Opções de arquitetura (D1 — decidir com o usuário)
+## Servidor da empresa (checklist para a TI)
+- Sistema do servidor (Windows Server? Linux?) e permissão para rodar o app como **serviço** (sobe sozinho no boot).
+- **Uma porta interna** liberada no firewall (ex.: 8080), acessível pela rede e pela VPN; **não** exposta à internet.
+- Nome fixo na rede (ex.: `apontarhoras.<dominio-interno>`) ou IP fixo.
+- Pasta para o banco + **backup diário** (rotina da TI ou do próprio app).
+- HTTPS interno com certificado da empresa: desejável (a VPN já cifra o acesso remoto; na rede local, depende da
+  política da TI).
+- Requisitos: leves — Python embarcado no pacote, banco SQLite (arquivo único; dezenas de usuários sem problema).
+
+## Opções de arquitetura (avaliadas em 2026-11-23 — escolhida a A)
 O ponto central do app é que **vários usuários** gravam e um admin enxerga tudo. Isso muda a arquitetura em relação
 ao Pagodinho (um usuário, SQLite local).
 

@@ -4,65 +4,41 @@
 - **Fase:** 0 — Planejamento. Estrutura de documentação criada (2026-11-23), modelada no projeto Pagodinho.
 - **Repositório:** github.com/Hnrqmeans/ApontarHoras — **público**: nada de dado real, caminho pessoal, e-mail ou
   segredo nos arquivos; commits com o e-mail `noreply` do GitHub (config local do repositório).
-- **Em andamento:** fechar as **Decisões em aberto** (abaixo) com o usuário antes de escrever código.
-- **Próximo:** com as decisões tomadas → Fase 1 (fundação: projeto Python, banco, login, papéis).
-- **Bloqueios:** decisões D1–D6.
+- **Escopo definido (2026-11-23):** apontamento de horas para a **Lei do Bem**. Colaborador aponta horas nos
+  projetos; no fim do mês um **responsável** acessa, confere e exporta. **Nada complexo por enquanto** (sem fluxo
+  de aprovação, sem gestores, sem cronômetro).
+- **Aguardando:** exemplo do usuário de como é o apontamento hoje (prometido para 2026-11-24) → ajustar DOMAIN.
+- **Arquitetura (D1, 2026-11-23):** servidor da empresa; remotos pela VPN. Usuário vai levar o checklist à TI.
+- **Próximo:** com o exemplo → Fase 1 (MVP). Dá para começar o código antes da resposta da TI (roda local no dev).
+- **Bloqueios:** exemplo do usuário.
 - **Última atualização:** 2026-11-23
 
 > IA: leia só esta seção no início da rotina. O restante é consulta sob demanda.
 
 ---
 
-## Decisões em aberto (responder antes da Fase 1)
-| #  | Pergunta                                                                                     | Proposta / recomendação |
-|----|----------------------------------------------------------------------------------------------|-------------------------|
-| D1 | **Onde ficam os dados de todos?** (a) servidor na rede da empresa; (b) nuvem; (c) pasta compartilhada (OneDrive/rede) com arquivo por pessoa e o admin consolida | **(a) ou (b)**: um servidor central. (c) é o mais simples de instalar, mas sem tempo real e com risco de conflito. Ver ARCHITECTURE › Opções de arquitetura. |
-| D2 | O app precisa funcionar **sem internet/rede** (apontar offline e enviar depois)?             | Começar **online**; offline só se for requisito. |
-| D3 | É **apontamento de horas por projeto** (timesheet) ou **controle de jornada/ponto** (entrada/saída, valor legal)? | Timesheet. Ponto eletrônico tem regras legais próprias (Portaria MTP 671/2021) — fora do escopo, salvo decisão contrária. |
-| D4 | **Login**: usuário/senha próprio do app, ou conta da empresa (Windows/AD/Microsoft 365)?     | Usuário/senha no início; SSO depois, se pedido. |
-| D5 | Papéis: só **admin + colaborador**, ou também **gestor** (aprova a própria equipe)?          | Três papéis (admin, gestor, colaborador). |
-| D6 | Forma de apontar: **início/fim** (relógio), **duração** por dia, ou **cronômetro**?          | Duração por dia em grade semanal + início/fim opcional; cronômetro numa fase posterior. |
-
-Outras perguntas (não bloqueiam): quantas pessoas usam? Há clientes/centros de custo? Precisa de exportação para
-Excel/ERP/folha? Jornada esperada por pessoa (ex.: 8h/dia) para mostrar horas faltantes? Período de fechamento
-(semanal, quinzenal, mensal)?
+## Decisões
+| #  | Pergunta                                                         | Situação |
+|----|------------------------------------------------------------------|----------|
+| D1 | **Como as horas de todos chegam ao responsável?**                | ✅ **Servidor da empresa** (2026-11-23): o app roda nele; todos gravam lá; responsável exporta tudo. Remotos via **VPN**. Pendente: checklist com a TI (ARCHITECTURE › Servidor da empresa). |
+| D2 | Funcionar sem rede?                                              | ✅ Não: precisa de rede da empresa ou VPN. |
+| D7 | Colaborador usa **executável** ou **link no navegador**?         | Em aberto: com servidor, o navegador já basta (nada a instalar); executável = janela que abre o mesmo endereço. |
+| D3 | Timesheet ou ponto eletrônico?                                   | ✅ **Timesheet de projetos para a Lei do Bem** (não é controle de jornada). |
+| D4 | Login                                                            | Simples (usuário/senha) — confirmar após D1. |
+| D5 | Papéis                                                           | ✅ **colaborador** + **responsável** (admin). Gestor/aprovação: backlog. |
+| D6 | Forma de apontar                                                 | Aguardando o exemplo do usuário. |
 
 ---
 
-## Fases (proposta — ajustar depois das decisões)
+## Fases
 
-### Fase 1 — Fundação
-- [ ] Projeto Python (pyproject, ruff, pytest, CI), camadas `domain/storage/services/ui`
-- [ ] Banco + migrações; usuário admin inicial criado na primeira execução
-- [ ] Login, sessão, troca de senha; papéis e checagem de permissão no `services`
-- [ ] Auditoria (quem/quando/o quê)
+### Fase 1 — MVP "apontar e entregar o mês"
+- [ ] Projeto Python (pyproject, ruff, pytest), camadas `domain/storage/services/ui`
+- [ ] Cadastros mínimos (responsável): colaboradores, projetos de P&D
+- [ ] Colaborador: apontar horas (data, projeto, horas, descrição da atividade), ver/editar o mês, total do mês
+- [ ] Responsável: ver horas do mês por pessoa e por projeto; **fechar o mês** (trava edição); exportar Excel
+- [ ] Executável Windows (mesma técnica do Pagodinho)
 
-### Fase 2 — Cadastros (admin)
-- [ ] Usuários (criar, desativar, redefinir senha, papel, equipe, jornada esperada)
-- [ ] Equipes e gestores
-- [ ] Clientes, projetos, atividades/tipos de hora; projeto ativo/inativo; quem pode apontar em qual projeto
-
-### Fase 3 — Apontamento (colaborador)
-- [ ] Grade semanal (dias × projeto/atividade), totais por dia e semana, horas esperadas × apontadas
-- [ ] Lançamento avulso (data, projeto, atividade, duração ou início/fim, descrição)
-- [ ] Copiar semana anterior; validações (sobreposição, dia acima do limite, data futura)
-- [ ] **Enviar** período para aprovação
-
-### Fase 4 — Aprovação e fechamento (gestor/admin)
-- [ ] Fila de períodos enviados; aprovar / devolver com motivo
-- [ ] Fechar período (bloqueia edição); reabrir com motivo
-- [ ] Pendências: quem não enviou / não apontou
-
-### Fase 5 — Relatórios e exportação
-- [ ] Horas por pessoa, projeto, cliente, atividade, período; gráficos
-- [ ] Exportar Excel/CSV/PDF
-- [ ] Painel do gestor
-
-### Fase 6 — Executável e implantação
-- [ ] Pacote Windows (mesma técnica do Pagodinho: Python embeddable assinado)
-- [ ] Instalação do servidor (conforme D1) e backup automático do banco
-- [ ] Guia de instalação para a TI da empresa
-
-### Backlog
-- Cronômetro; lembrete de apontamento; offline com sincronização; SSO/AD; integração com ERP/folha;
-  banco de horas; app no celular (navegador).
+### Depois (só se fizer falta)
+- Fluxo de aprovação/devolução; gestores por equipe; relatório anual para o FORMP&D; anexos de evidência;
+  lembrete de apontamento; cronômetro; SSO; nuvem.

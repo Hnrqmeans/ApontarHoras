@@ -18,6 +18,24 @@ MODELO DE ENTRADA (copiar e colar no topo, abaixo desta linha)
 - item
 -->
 
+## 2026-11-23 — D1: servidor da empresa + VPN  `#decisao`
+**Fase:** 0 — Planejamento
+**Motivo:** usuário quer que uma pessoa só baixe os dados de todos, sem envio de arquivos; a empresa tem servidor e
+os remotos usam VPN.
+**O que mudou:** D1/D2 decididas; nova D7 (executável × navegador); checklist para a TI em ARCHITECTURE;
+`.gitignore` passa a ignorar `exemplos/` e `*.pdf` (arquivo de exemplo do usuário com dados reais).
+**Pendências / próximos passos:** exemplo do usuário; resposta da TI; D7.
+
+## 2026-11-23 — Escopo: apontamento para a Lei do Bem, versão simples  `#decisao #docs`
+**Fase:** 0 — Planejamento
+**Motivo:** usuário: "a ideia é apontar horas e no final do mês um responsável ter acesso… é um apontamento para
+lei do bem, então não vamos criar nada complexo ainda".
+**O que mudou:** ROADMAP reduzido a um MVP (apontar → responsável fecha e exporta o mês); D3 e D5 decididas;
+aprovação/gestores/cronômetro foram para "Depois". DOMAIN ganhou a seção "Contexto: Lei do Bem". CLAUDE.md atualizado.
+**Pendências / próximos passos:**
+- Usuário envia exemplo do apontamento atual (2026-11-24) → definir campos e forma de apontar (D6).
+- Decidir D1 (como as horas chegam ao responsável).
+
 ## 2026-11-23 — Repositório conectado e revisão de dados sensíveis  `#infra`
 **Fase:** 0 — Planejamento
 **Objetivo:** ligar a pasta ao GitHub e subir a estrutura sem expor dados pessoais.

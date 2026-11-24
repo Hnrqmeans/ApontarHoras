@@ -26,8 +26,10 @@ dist/
 config.local.*
 .claude/settings.local.json
 
-# Exportações e planilhas com dados reais da equipe (testes usam dados fictícios)
+# Exportações, exemplos e planilhas com dados reais da equipe (testes usam dados fictícios)
+exemplos/
 exportacoes/
+*.pdf
 *.xlsx
 *.csv
 !tests/fixtures/**

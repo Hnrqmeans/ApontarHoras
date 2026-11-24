@@ -2,6 +2,15 @@
 
 > Fonte da verdade das regras de negócio. Rascunho de 2026-11-23 — confirmar com o usuário (ROADMAP › D1–D6).
 
+## Contexto: Lei do Bem (2026-11-23)
+O app serve para registrar as horas que cada colaborador dedica a **projetos de P&D/inovação**, como evidência para
+a Lei do Bem (Lei 11.196/2005). Uso: o colaborador aponta durante o mês; no fim do mês o **responsável** confere,
+fecha e exporta. Por isso, cada apontamento precisa de **descrição da atividade** (o que foi feito no projeto) e os
+dados de meses fechados não podem mudar sem registro.
+
+**MVP (Fase 1):** papéis só `colaborador` e `responsável` (= admin); estados do mês só `aberto` → `fechado`.
+As tabelas abaixo com `gestor`, `enviado`, `devolvido` e `aprovado` são a versão completa, **para depois**.
+
 ## Conceitos
 | Conceito         | Descrição                                                                                     |
 |------------------|-----------------------------------------------------------------------------------------------|
